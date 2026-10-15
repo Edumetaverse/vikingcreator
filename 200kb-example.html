@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>199 KB Viking character example</title>
+  <meta name="description" content="Inspect an animated, game-ready Viking character GLB under 200 KB.">
+  <link rel="stylesheet" href="./css/200kb-example.css">
+  <script type="importmap">{"imports":{"playcanvas":"./lib/playcanvas.min.mjs"}}</script>
+</head>
+<body>
+  <header class="topbar"><a href="./index.html">ᚹ &nbsp; VIKING CHARACTER FORGE</a><span>EXPORT STUDY / 01</span></header>
+  <main>
+    <section class="preview" aria-label="3D preview of the 199 KB Viking character">
+      <canvas id="example-canvas" aria-label="Rotatable 3D Viking trader"></canvas>
+      <div class="preview-top"><span class="live-dot"></span><span>ACTUAL EXPORTED GLB</span><span id="status">Loading…</span></div>
+      <div class="preview-bottom">DRAG TO ROTATE · SELECT A CLIP TO PREVIEW</div>
+    </section>
+    <aside class="details">
+      <div class="eyebrow">THE 200 KB CHALLENGE <span>01 / 01</span></div>
+      <h1>One Viking.<br><em>198.7 KB.</em></h1>
+      <p class="lead">This preview loads the same animated GLB you can download below. It shows the visual trade-off at the strict file-size limit.</p>
+      <div class="specs"><div><strong>198,716</strong><span>BYTES ON DISK</span></div><div><strong>9</strong><span>RIG JOINTS</span></div><div><strong>5</strong><span>ANIMATION CLIPS</span></div></div>
+      <h2>Try the animations</h2>
+      <div class="clips" id="clips" role="group" aria-label="Preview animation"></div>
+      <a class="download" href="./assets/models/characters/examples/viking-trader-199kb.glb" download="viking-trader-199kb.glb">↓ &nbsp; Download this 199 KB GLB</a>
+      <a class="studio-link" href="./index.html">Create your own character ↗</a>
+      <p class="fineprint">Includes one JPEG colour atlas, quantized geometry, a skinned mesh, blinking eyelids and Idle, Walk, Run, Sit and Guard clips. File size is the GLB itself; the viewer code is separate.</p>
+    </aside>
+  </main>
+  <script type="module" src="./src/200kb-example.js"></script>
+</body>
+</html>
