@@ -19,6 +19,7 @@ export const DYES = [
 
 export const CLIPS = [
     { id: 'idle', label: 'Idle', duration: 2.4, note: 'Planted feet · breath · blink · head tilt' },
+    { id: 'blink', label: 'Blink', duration: 1, note: 'Face mesh closes and opens both eyes' },
     { id: 'walk', label: 'Walk', duration: 1.25, note: 'Grounded travelling gait' },
     { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' },
     { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' },
@@ -29,9 +30,19 @@ export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'Right
 export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
 
 export function blinkAmount(clipId, seconds) {
-    if (clipId !== 'idle') return 0.001;
+    if (clipId === 'blink') {
+        const phase = ((seconds % 1) + 1) % 1;
+        if (phase < 0.12 || phase >= 0.66) return 0;
+        if (phase < 0.22) return (phase - 0.12) / 0.10;
+        if (phase < 0.52) return 1;
+        return (0.66 - phase) / 0.14;
+    }
+    if (clipId !== 'idle') return 0;
     const phase = ((seconds % 2.4) + 2.4) % 2.4;
-    return Math.max(0.001, 0.85 * (1 - Math.abs(phase - 1.2) / 0.12));
+    if (phase < 1.08 || phase >= 1.42) return 0;
+    if (phase < 1.16) return (phase - 1.08) / 0.08;
+    if (phase < 1.30) return 1;
+    return (1.42 - phase) / 0.12;
 }
 
 // Eight authored beats across a full two-step walk. The second leg reads the
@@ -108,7 +119,7 @@ export function poseAt(clipId, seconds) {
         out.RightArm[2] = 20;
         out.WalkRoot[1] = 5 * s;
         rise = -0.035;
-    } else {
+    } else if (clipId === 'idle') {
         // Idle is planted. Only the new upper-body joints move.
         out.Chest[0] = 0.9 * s;
         out.Head[1] = 1.3 * s;
@@ -215,11 +226,12 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
     for (const joint of JOINTS) if (namedNodes[joint] === undefined) throw new Error(`Missing rig joint: ${joint}`);
     for (const eyelid of EYELIDS) if (namedNodes[eyelid] === undefined) throw new Error(`Missing blink eyelid: ${eyelid}`);
     json.animations = CLIPS.map((clip) => {
-        const count = clip.id === 'idle' ? 13 : clip.id === 'sit' ? 2 : clip.id === 'guard' ? 9 : 17;
+        const count = clip.id === 'idle' ? 13 : clip.id === 'blink' || clip.id === 'sit' ? 2 : clip.id === 'guard' ? 9 : 17;
         const times = Array.from({ length: count }, (_, i) => clip.duration * i / (count - 1));
         const timeAccessor = accessor(times, 'SCALAR', [0], [clip.duration]);
         const samplers = [], channels = [];
         for (const joint of JOINTS) {
+            if (times.every((t) => poseAt(clip.id, t).rotations[joint].every((angle) => Math.abs(angle) < 1e-7))) continue;
             const values = times.flatMap((t) => quaternionFromEuler(poseAt(clip.id, t).rotations[joint]));
             const output = accessor(values, 'VEC4');
             channels.push({ sampler: samplers.length, target: { node: namedNodes[joint], path: 'rotation' } });
@@ -228,15 +240,18 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
         const root = json.nodes[namedNodes.WalkRoot];
         const rest = root.translation || [0, 0, 0];
         const offsets = times.flatMap((t) => [rest[0], rest[1] + poseAt(clip.id, t).rise, rest[2]]);
-        channels.push({ sampler: samplers.length, target: { node: namedNodes.WalkRoot, path: 'translation' } });
-        samplers.push({ input: timeAccessor, output: accessor(offsets, 'VEC3'), interpolation: 'LINEAR' });
-        if (clip.id === 'idle') {
-            const blinkTimes = [0, 1.08, 1.2, 1.32, clip.duration];
+        if (times.some((t) => Math.abs(poseAt(clip.id, t).rise) > 1e-7)) {
+            channels.push({ sampler: samplers.length, target: { node: namedNodes.WalkRoot, path: 'translation' } });
+            samplers.push({ input: timeAccessor, output: accessor(offsets, 'VEC3'), interpolation: 'LINEAR' });
+        }
+        if (clip.id === 'idle' || clip.id === 'blink') {
+            const blinkTimes = clip.id === 'idle'
+                ? [0, 1.08, 1.16, 1.30, 1.42, clip.duration]
+                : [0, 0.12, 0.22, 0.52, 0.66, clip.duration];
             const blinkInput = accessor(blinkTimes, 'SCALAR', [0], [clip.duration]);
-            const scales = blinkTimes.flatMap((time) => [1, blinkAmount(clip.id, time), 1]);
-            const blinkOutput = accessor(scales, 'VEC3');
+            const blinkOutput = accessor(blinkTimes.map((time) => blinkAmount(clip.id, time)), 'SCALAR');
             for (const eyelid of EYELIDS) {
-                channels.push({ sampler: samplers.length, target: { node: namedNodes[eyelid], path: 'scale' } });
+                channels.push({ sampler: samplers.length, target: { node: namedNodes[eyelid], path: 'weights' } });
                 samplers.push({ input: blinkInput, output: blinkOutput, interpolation: 'LINEAR' });
             }
         }

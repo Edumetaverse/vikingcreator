@@ -1,8 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015z';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015aa';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261015z';
+const ASSET_VERSION = '20261015aa';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },
@@ -35,7 +35,7 @@ function updateControls() {
         `<span class="dye-caption">${DYES.find((d) => d.id === state.dye).label}</span>`;
     $('hair-list').innerHTML = HAIR_COLORS.map((color) => `<button class="dye" type="button" data-hair="${color.id}" title="${color.label}" aria-label="${color.label}" aria-pressed="${state.hair === color.id}"><span style="background:${color.color}"></span></button>`).join('') +
         `<span class="dye-caption">${HAIR_COLORS.find((color) => color.id === state.hair).label}</span>`;
-    const symbols = { idle: '◇', walk: '↗', run: '➜', sit: '▣', guard: '⬡' };
+    const symbols = { idle: '◇', blink: '◉', walk: '↗', run: '➜', sit: '▣', guard: '⬡' };
     $('animation-list').innerHTML = CLIPS.map((clip) => `<button class="animation-option" type="button" data-clip="${clip.id}" aria-pressed="${state.clip === clip.id}"><span class="animation-symbol">${symbols[clip.id]}</span><span class="animation-text"><strong>${clip.label}</strong><small>${clip.note}</small></span><span class="animation-play">${state.clip === clip.id ? 'Ⅱ' : '▶'}</span></button>`).join('');
     $('character-name').value = state.name;
 }
@@ -135,7 +135,7 @@ async function initScene() {
         if (state.playing) state.elapsed += delta;
         const pose = poseAt(state.clip, state.elapsed);
         for (const joint of JOINTS) joints[joint]?.setLocalEulerAngles(...pose.rotations[joint]);
-        for (const eyelid of eyelids) eyelid.setLocalScale(1, blinkAmount(state.clip, state.elapsed), 1);
+        for (const eyelid of eyelids) eyelid.setWeight(0, blinkAmount(state.clip, state.elapsed));
         if (joints.WalkRoot) joints.WalkRoot.setLocalPosition(0, pose.rise, 0);
         pivot.setLocalEulerAngles(0, state.yaw, 0);
     });
@@ -188,8 +188,8 @@ async function loadCharacter() {
         pivot.addChild(model);
         joints = Object.fromEntries(JOINTS.map((joint) => [joint, model.findByName(joint)]));
         if (Object.values(joints).some((joint) => !joint)) throw new Error('Character rig is incomplete.');
-        eyelids = EYELIDS.map((eyelid) => model.findByName(eyelid));
-        if (eyelids.some((eyelid) => !eyelid)) throw new Error('Character blink geometry is incomplete.');
+        eyelids = EYELIDS.map((name) => model.findByName(name)?.render?.meshInstances[0]?.morphInstance);
+        if (eyelids.some((eyelid) => !eyelid)) throw new Error('Character eyelid morph is incomplete.');
         const skinned = model.findComponents('render').some((render) => render.meshInstances.some((mi) => mi.skinInstance));
         if (!skinned) throw new Error('Character has no skinned mesh.');
         sourceBuffer = source;

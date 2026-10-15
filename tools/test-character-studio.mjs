@@ -14,7 +14,7 @@ for (const name of names) {
     assert.deepEqual(json.animations.map((clip) => clip.name), CLIPS.map((clip) => clip.label));
     assert.equal(json.skins[0].joints.length, JOINTS.length);
     assert.equal(json.accessors[json.skins[0].inverseBindMatrices].count, JOINTS.length);
-    assert.equal(json.animations[0].channels.length, JOINTS.length + 1 + EYELIDS.length);
+    assert.equal(json.animations[0].channels.filter((channel) => channel.target.path === 'weights').length, EYELIDS.length);
     for (const eyelid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === eyelid));
     const leftArm = json.nodes.find((node) => node.name === 'LeftArm');
     const rightArm = json.nodes.find((node) => node.name === 'RightArm');
@@ -25,16 +25,23 @@ for (const name of names) {
     }
     assert.ok(leftArm.children.some((index) => json.nodes[index].name === 'LeftElbow'));
     assert.ok(rightArm.children.some((index) => json.nodes[index].name === 'RightElbow'));
-    const lidMesh = json.meshes.find((mesh) => mesh.name === 'Blink eyelid pair');
-    assert.ok(json.accessors[lidMesh.primitives[0].attributes.POSITION].min[1] < -0.02,
-        'Closed lids must cover the lower eye');
+    for (const side of ['Left', 'Right']) {
+        const lidNode = json.nodes.find((node) => node.name === `Blink${side}`);
+        const lidMesh = json.meshes[lidNode.mesh];
+        assert.equal(lidMesh.primitives[0].targets.length, 1, 'Eyelids must morph on the mesh');
+        const target = json.accessors[lidMesh.primitives[0].targets[0].POSITION];
+        assert.equal(target.count, 6);
+        const blinkChannel = json.animations[0].channels.find((channel) =>
+            channel.target.node === json.nodes.indexOf(lidNode) && channel.target.path === 'weights');
+        assert.ok(blinkChannel, 'Idle must animate the actual eyelid morph');
+    }
     assert.ok(json.extensionsRequired.includes('KHR_mesh_quantization'));
     for (const animation of json.animations) {
         for (const sampler of animation.samplers) {
             const times = json.accessors[sampler.input];
             const values = json.accessors[sampler.output];
             assert.equal(times.count, values.count);
-            assert.ok(times.count >= (animation.name === 'Sit' ? 2 : animation.name === 'Idle' ? 5 : animation.name === 'Guard' ? 9 : 13));
+            assert.ok(times.count >= (animation.name === 'Sit' ? 2 : animation.name === 'Blink' ? 2 : animation.name === 'Idle' ? 5 : animation.name === 'Guard' ? 9 : 13));
             assert.equal(sampler.interpolation, 'LINEAR');
         }
     }
@@ -76,9 +83,11 @@ for (const joint of ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightSh
     assert.deepEqual(idleA.rotations[joint], idleB.rotations[joint], `${joint} must remain planted at idle`);
 assert.notDeepEqual(idleA.rotations.Head, idleB.rotations.Head);
 assert.notDeepEqual(idleA.rotations.Chest, idleB.rotations.Chest);
-assert.ok(blinkAmount('idle', 1.2) > 0.84);
-assert.equal(blinkAmount('idle', 0), 0.001);
-assert.equal(blinkAmount('sit', 1.2), 0.001);
+assert.equal(blinkAmount('idle', 1.2), 1);
+assert.equal(blinkAmount('blink', 0.3), 1);
+assert.equal(blinkAmount('blink', 0), 0);
+assert.equal(blinkAmount('idle', 0), 0);
+assert.equal(blinkAmount('sit', 1.2), 0);
 const seatedA = poseAt('sit', 0), seatedB = poseAt('sit', 1);
 assert.deepEqual(seatedA, seatedB, 'Seated pose must not wobble');
 for (const side of ['Left', 'Right']) {
