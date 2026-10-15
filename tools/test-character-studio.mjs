@@ -104,3 +104,9 @@ assert.equal(walkContact.rotations.WalkRoot[1], 0, 'Walk must not yaw the pelvis
 assert.equal(walkContact.rotations.WalkRoot[2], 0, 'Walk must not roll the pelvis');
 assert.equal(walkContact.rotations.LeftThigh[0], walkOpposite.rotations.RightThigh[0]);
 assert.ok(poseAt('walk', 0.78).rotations.LeftShin[0] > 30, 'Swing leg must lift to clear the ground');
+const guard = poseAt('guard', 0);
+for (const side of ['Left', 'Right']) {
+    assert.ok(guard.rotations[`${side}Arm`][0] < -60, 'Guard elbows must lift ahead of the torso');
+    assert.ok(Math.abs(guard.rotations[`${side}Arm`][2]) >= 30, 'Guard arms must spread clear of the clothing');
+    assert.ok(guard.rotations[`${side}Elbow`][0] < -25, 'Guard forearms must bend into the ready pose');
+}

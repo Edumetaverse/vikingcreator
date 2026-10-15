@@ -23,7 +23,7 @@ export const CLIPS = [
     { id: 'walk', label: 'Walk', duration: 1.25, note: 'Grounded travelling gait' },
     { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' },
     { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' },
-    { id: 'guard', label: 'Guard', duration: 1.6, note: 'Ready stance' }
+    { id: 'guard', label: 'Guard', duration: 1.6, note: 'Raised arms · ready stance' }
 ];
 
 export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow'];
@@ -111,12 +111,12 @@ export function poseAt(clipId, seconds) {
     } else if (clipId === 'guard') {
         out.LeftThigh[0] = 9;
         out.RightThigh[0] = -11;
-        out.LeftArm[0] = -42 + 3 * s;
-        out.RightArm[0] = -54 - 3 * s;
-        out.LeftElbow[0] = -16;
-        out.RightElbow[0] = -16;
-        out.LeftArm[2] = -16;
-        out.RightArm[2] = 20;
+        out.LeftArm[0] = -68 + 2 * s;
+        out.RightArm[0] = -68 - 2 * s;
+        out.LeftElbow[0] = -28;
+        out.RightElbow[0] = -28;
+        out.LeftArm[2] = -30;
+        out.RightArm[2] = 30;
         out.WalkRoot[1] = 5 * s;
         rise = -0.035;
     } else if (clipId === 'idle') {
