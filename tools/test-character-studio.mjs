@@ -121,6 +121,21 @@ for (const name of newNames) {
     if (name === 'ArmoredJarl')
         assert.ok(!json.nodes.some((node) => node.name === 'Accessory_ArmoredJarl_Head'),
             'Armored Jarl must show the original hair and face without a helmet');
+    if (name === 'ShieldBearer') {
+        const shieldNode = json.nodes.find((node) => node.name === 'Accessory_ShieldBearer_Chest');
+        const shieldMesh = json.meshes[shieldNode.mesh];
+        const wood = shieldMesh.primitives.find((primitive) =>
+            json.materials[primitive.material].name === 'Accessory wood');
+        const position = json.accessors[wood.attributes.POSITION];
+        const view = json.bufferViews[position.bufferView];
+        const coords = new Float32Array(exported.binary.buffer,
+            exported.binary.byteOffset + view.byteOffset + (position.byteOffset || 0), position.count * 3);
+        const xs = [], zs = [];
+        for (let i = 0; i < coords.length; i += 3) { xs.push(coords[i]); zs.push(coords[i + 2]); }
+        assert.ok(Math.abs(Math.min(...xs) + Math.max(...xs)) < 0.02,
+            'Shield must be centered on the back');
+        assert.ok(Math.max(...zs) < -0.20, 'Shield must sit behind the torso');
+    }
     assert.ok(json.meshes.length > 3);
     for (const lid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === lid));
     const textureIndex = source.json.materials[0].pbrMetallicRoughness.baseColorTexture.index;

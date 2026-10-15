@@ -176,10 +176,10 @@ class Geometry:
             b = 2*math.pi*(i+1)/sides
             p = (x + radius*math.cos(a), y + radius*math.sin(a), z)
             q = (x + radius*math.cos(b), y + radius*math.sin(b), z)
-            pi = (x + radius*.84*math.cos(a), y + radius*.84*math.sin(a), z + .012)
-            qi = (x + radius*.84*math.cos(b), y + radius*.84*math.sin(b), z + .012)
-            self.quad(outer, p, q, qi, pi)
-            self.tri(inner, (x, y, z + .016), pi, qi)
+            pi = (x + radius*.84*math.cos(a), y + radius*.84*math.sin(a), z - .012)
+            qi = (x + radius*.84*math.cos(b), y + radius*.84*math.sin(b), z - .012)
+            self.quad(outer, pi, qi, q, p)
+            self.tri(inner, (x, y, z - .016), qi, pi)
 
 
 def long_beard(head, length):
@@ -245,16 +245,21 @@ def shield_bearer(parts):
         root.surface(tasset, ['leather', 'garment_dark'])
         root.tri('bronze', (side*.14, -.33, .32),
                  (side*.20, -.33, .29), (side*.17, -.39, .31))
-    # Large shield remains behind one shoulder, but now has timber planks.
-    chest.disc('steel_dark', 'wood', (.37, .10), .36, -.23, 14)
+    # Strap the shield centrally across the back, with its decorated face
+    # pointing away from the cloak. Nothing protrudes beside the arms.
+    shield_y, shield_z, shield_r = .08, -.28, .34
+    chest.disc('steel_dark', 'wood', (0, shield_y), shield_r, shield_z, 14)
     for i in range(6):
-        x = .16 + i*.075
+        x = (i - 2.5)*.09
+        half_height = .78*math.sqrt(shield_r**2 - (abs(x)+.04)**2)
         chest.quad('wood_light' if i % 2 else 'wood',
-                   (x-.028, -.17, -.197), (x+.028, -.17, -.197),
-                   (x+.028, .36, -.197), (x-.028, .36, -.197))
-    chest.orb('bronze', (.37, .10, -.17), (.075, .075, .045), 8, 3)
+                   (x-.039, shield_y-half_height, shield_z-.020),
+                   (x-.039, shield_y+half_height, shield_z-.020),
+                   (x+.039, shield_y+half_height, shield_z-.020),
+                   (x+.039, shield_y-half_height, shield_z-.020))
+    chest.orb('bronze', (0, shield_y, shield_z-.040), (.075, .075, .04), 8, 3)
     for angle in (0, math.pi/2, math.pi, 3*math.pi/2):
-        chest.orb('bronze', (.37 + .27*math.cos(angle), .10 + .27*math.sin(angle), -.20),
+        chest.orb('bronze', (.27*math.cos(angle), shield_y + .27*math.sin(angle), shield_z-.024),
                   (.023, .023, .014), 6, 3)
     chest.rod('leather_light', (-.14, .27, .25), (.13, -.02, .28), .012, 5)
 

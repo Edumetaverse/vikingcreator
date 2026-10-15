@@ -1,8 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, HAIR_COLORS, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb, accessoryColor } from './character-studio-core.js?v=20261016bc';
+import { PRESETS, DYES, HAIR_COLORS, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb, accessoryColor } from './character-studio-core.js?v=20261016be';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261016bc';
+const ASSET_VERSION = '20261016be';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf', 'Eirik', 'Astrid', 'Torsten', 'Ragnar'];
 const saved = (() => { try { return JSON.parse(localStorage.getItem('viking-character-forge') || '{}'); } catch { return {}; } })();
 const state = {
