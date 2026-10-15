@@ -7,7 +7,6 @@ const newNames = ['ElderSeer', 'ShieldBearer', 'Blacksmith', 'ArmoredJarl'];
 assert.equal(PRESETS.length, 9);
 assert.deepEqual(PRESETS.slice(5).map((preset) => preset.id), newNames);
 assert.equal(PRESETS.find((preset) => preset.id === 'ElderSeer').base, 'Farmer');
-assert.equal(PRESETS.find((preset) => preset.id === 'ArmoredJarl').base, 'Farmer');
 assert.deepEqual(CLIPS.map((clip) => clip.label), ['Idle', 'Blink', 'Walk', 'Run']);
 for (const name of names) {
     const file = readFileSync(`assets/models/characters/studio/${name}.glb`);
@@ -111,17 +110,15 @@ for (const name of newNames) {
     assert.equal(json.skins[0].joints.length, JOINTS.length);
     assert.equal(json.images.length, 3);
     assert.ok(json.accessors[json.meshes[0].primitives[0].attributes.POSITION].count > 7000);
-    assert.ok(json.nodes.some((node) => node.name?.startsWith(`Accessory_${name}_`)));
-    if (name === 'ElderSeer') {
-        const attachments = json.nodes.filter((node) => node.name?.startsWith('Accessory_ElderSeer_'));
-        assert.deepEqual(attachments.map((node) => node.name).sort(),
-            ['Accessory_ElderSeer_Head', 'Accessory_ElderSeer_WalkRoot'],
-            'Elder Seer has a robe and beard, but no hand-held staff or shield');
-    }
+    if (name === 'ElderSeer')
+        assert.ok(!json.nodes.some((node) => node.name?.startsWith('Accessory_ElderSeer_')),
+            'Elder Seer must not carry floating staff, shield or robe accessories');
+    else assert.ok(json.nodes.some((node) => node.name?.startsWith(`Accessory_${name}_`)));
     if (name === 'ArmoredJarl')
         assert.ok(!json.nodes.some((node) => node.name === 'Accessory_ArmoredJarl_Head'),
             'Armored Jarl must show the original hair and face without a helmet');
-    assert.ok(json.meshes.length > 3);
+    if (name === 'ElderSeer') assert.equal(json.meshes.length, 3);
+    else assert.ok(json.meshes.length > 3);
     for (const lid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === lid));
     const textureIndex = source.json.materials[0].pbrMetallicRoughness.baseColorTexture.index;
     const imageIndex = source.json.textures[textureIndex].source;
@@ -131,16 +128,6 @@ for (const name of newNames) {
     assert.equal(dyed.json.images[imageIndex].mimeType, 'image/jpeg');
     assert.equal(dyed.json.meshes.length, json.meshes.length);
     assert.equal(dyed.json.materials.length, json.materials.length);
-    const accessory = json.materials.findIndex((material) => material.name === 'Accessory garment');
-    assert.ok(accessory >= 0);
-    const recolored = parseGlb(buildCharacterGlb(input, null, `${name} recolored`, 'forest-garments-silver-hair'));
-    assert.notDeepEqual(recolored.json.materials[accessory].pbrMetallicRoughness.baseColorFactor,
-        json.materials[accessory].pbrMetallicRoughness.baseColorFactor,
-        'Accessory cloth must follow the selected garment palette in exported GLBs');
-    const hair = json.materials.findIndex((material) => material.name === 'Accessory hair');
-    if (hair >= 0) assert.notDeepEqual(recolored.json.materials[hair].pbrMetallicRoughness.baseColorFactor,
-        json.materials[hair].pbrMetallicRoughness.baseColorFactor,
-        'Accessory hair must follow the selected hair palette in exported GLBs');
     console.log(`${name} high detail: ${exported.binary.byteLength.toLocaleString()} binary bytes`);
 }
 

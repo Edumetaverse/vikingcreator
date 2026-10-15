@@ -8,7 +8,7 @@ export const PRESETS = [
     { id: 'ElderSeer', label: 'Elder Seer', subtitle: 'Silver hair · wool tunic · fur cloak', initials: 'ES', base: 'Farmer', defaultDye: 'ochre', defaultHair: 'silver' },
     { id: 'ShieldBearer', label: 'Shield Bearer', subtitle: 'Copper braids · shield · leather armor', initials: 'SB', base: 'Sheildmaiden', defaultDye: 'wine', defaultHair: 'copper' },
     { id: 'Blacksmith', label: 'Blacksmith', subtitle: 'Forge apron · hammer · bracers', initials: 'BS', base: 'Farmer', defaultDye: 'slate', defaultHair: 'raven' },
-    { id: 'ArmoredJarl', label: 'Armored Jarl', subtitle: 'Layered mail · fur mantle · battle axe', initials: 'AJ', base: 'Farmer', defaultDye: 'slate', defaultHair: 'chestnut' }
+    { id: 'ArmoredJarl', label: 'Armored Jarl', subtitle: 'Scale mail · fur mantle · battle axe', initials: 'AJ', base: 'Warrior', defaultDye: 'slate', defaultHair: 'chestnut' }
 ];
 
 export const DYES = [
@@ -19,25 +19,6 @@ export const DYES = [
     { id: 'wine', label: 'Oxblood', color: '#773c45', hue: 350, sat: 0.43 },
     { id: 'slate', label: 'Slate', color: '#58656d', hue: 206, sat: 0.19 }
 ];
-
-export const HAIR_COLORS = [
-    { id: 'original', label: 'Original', color: '#8f7159' },
-    { id: 'raven', label: 'Raven black', color: '#292727', hue: 27, sat: 0.18, base: 0.05, scale: 0.42 },
-    { id: 'chestnut', label: 'Chestnut brown', color: '#754328', hue: 25, sat: 0.55, base: 0.09, scale: 0.80 },
-    { id: 'copper', label: 'Copper red', color: '#b6532d', hue: 17, sat: 0.70, base: 0.16, scale: 1.02 },
-    { id: 'blonde', label: 'Golden blonde', color: '#d7b764', hue: 37, sat: 0.42, base: 0.52, scale: 0.78 },
-    { id: 'silver', label: 'Silver grey', color: '#b4b4ad', hue: 38, sat: 0.08, base: 0.38, scale: 0.65 }
-];
-
-export function accessoryColor(materialName, dyeId, hairId) {
-    const match = /^Accessory (garment|hair)(?:_(light|dark))?$/.exec(materialName || '');
-    if (!match) return null;
-    const choice = match[1] === 'garment' ? DYES.find((d) => d.id === dyeId) :
-        HAIR_COLORS.find((color) => color.id === hairId);
-    if (!choice || choice.id === 'original') return null;
-    const shade = match[2] === 'light' ? 1.18 : match[2] === 'dark' ? 0.72 : 1;
-    return [1, 3, 5].map((index) => Math.min(1, parseInt(choice.color.slice(index, index + 2), 16) / 255 * shade));
-}
 
 export const CLIPS = [
     { id: 'idle', label: 'Idle', duration: 28.8, note: 'Planted feet · breath · irregular blink · head tilt' },
@@ -210,13 +191,6 @@ function packGlb(json, binary) {
 
 export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'original') {
     const { json, binary } = parseGlb(sourceBuffer);
-    const palette = /^([^-]+)-garments-([^-]+)-hair$/.exec(dyeId);
-    const garmentId = palette ? palette[1] : dyeId;
-    const hairId = palette ? palette[2] : 'original';
-    for (const material of json.materials) {
-        const color = accessoryColor(material.name, garmentId, hairId);
-        if (color) material.pbrMetallicRoughness.baseColorFactor = [...color, 1];
-    }
     let baseBinary = binary;
     if (textureBytes) {
         const baseTexture = json.materials[0].pbrMetallicRoughness.baseColorTexture.index;

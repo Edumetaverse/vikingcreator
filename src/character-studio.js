@@ -1,9 +1,17 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, HAIR_COLORS, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb, accessoryColor } from './character-studio-core.js?v=20261016bc';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016aw';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261016bc';
+const ASSET_VERSION = '20261016aw';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf', 'Eirik', 'Astrid', 'Torsten', 'Ragnar'];
+const HAIR_COLORS = [
+    { id: 'original', label: 'Original', color: '#8f7159' },
+    { id: 'raven', label: 'Raven black', color: '#292727', hue: 27, sat: 0.18, base: 0.05, scale: 0.42 },
+    { id: 'chestnut', label: 'Chestnut brown', color: '#754328', hue: 25, sat: 0.55, base: 0.09, scale: 0.80 },
+    { id: 'copper', label: 'Copper red', color: '#b6532d', hue: 17, sat: 0.70, base: 0.16, scale: 1.02 },
+    { id: 'blonde', label: 'Golden blonde', color: '#d7b764', hue: 37, sat: 0.42, base: 0.52, scale: 0.78 },
+    { id: 'silver', label: 'Silver grey', color: '#b4b4ad', hue: 38, sat: 0.08, base: 0.38, scale: 0.65 }
+];
 const saved = (() => { try { return JSON.parse(localStorage.getItem('viking-character-forge') || '{}'); } catch { return {}; } })();
 const state = {
     preset: PRESETS.some((p) => p.id === saved.preset) ? saved.preset : 'Chief',
@@ -366,14 +374,10 @@ async function applyPalette() {
     activeTexture = texture;
     textureCanvas = canvas;
     for (const render of model.findComponents('render')) for (const mi of render.meshInstances) {
-        if (EYELIDS.includes(render.entity.name)) continue;
+        if (EYELIDS.includes(render.entity.name) || render.entity.name.startsWith('Accessory_')) continue;
         if (!mi._forgeOriginalMaterial) mi._forgeOriginalMaterial = mi.material;
-        const accessory = render.entity.name.startsWith('Accessory_');
-        const color = accessory ? accessoryColor(mi._forgeOriginalMaterial.name, state.dye, state.hair) : null;
-        if (accessory && !color) { mi.material = mi._forgeOriginalMaterial; continue; }
         const material = mi._forgeOriginalMaterial.clone();
-        if (accessory) material.diffuse = new pc.Color(...color);
-        else material.diffuseMap = texture;
+        material.diffuseMap = texture;
         material.update();
         mi.material = material;
     }
