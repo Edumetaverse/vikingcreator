@@ -1,5 +1,5 @@
 // Shared pose and GLB export logic for the character studio. Both detail tiers
-// have the same nine-joint skin; this module adds authored keyframes.
+// have the same eleven-joint skin; this module adds authored keyframes.
 export const PRESETS = [
     { id: 'Chief', label: 'Chieftain', subtitle: 'Fur cloak · mail · braided beard', initials: 'CH' },
     { id: 'Farmer', label: 'Settler', subtitle: 'Wool tunic · working boots', initials: 'SE' },
@@ -25,7 +25,7 @@ export const CLIPS = [
     { id: 'guard', label: 'Guard', duration: 1.6, note: 'Ready stance' }
 ];
 
-export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head'];
+export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow'];
 export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
 
 export function blinkAmount(clipId, seconds) {
@@ -34,41 +34,76 @@ export function blinkAmount(clipId, seconds) {
     return Math.max(0.001, 0.85 * (1 - Math.abs(phase - 1.2) / 0.12));
 }
 
+// Eight authored beats across a full two-step walk. The second leg reads the
+// same track half a cycle later, matching contact/down/passing/up on each side.
+function cyclicPose(values, phase) {
+    const at = (((phase % 1) + 1) % 1) * values.length;
+    const i = Math.floor(at);
+    const t = at - i;
+    const n = values.length;
+    const a = values[(i + n - 1) % n], b = values[i],
+        c = values[(i + 1) % n], d = values[(i + 2) % n];
+    return 0.5 * ((2 * b) + (-a + c) * t +
+        (2 * a - 5 * b + 4 * c - d) * t * t +
+        (-a + 3 * b - 3 * c + d) * t * t * t);
+}
+
+const WALK_HIP = [-22, -15, 0, 13, 22, 10, -9, -23];
+const WALK_KNEE = [5, 11, 6, 7, 25, 43, 31, 12];
+const WALK_RISE = [0, -0.009, 0.003, 0.011, 0, -0.009, 0.003, 0.011];
+
 export function poseAt(clipId, seconds) {
     const clip = CLIPS.find((item) => item.id === clipId) || CLIPS[0];
     const phase = seconds / clip.duration * Math.PI * 2;
     const s = Math.sin(phase), c = Math.cos(phase);
     const out = Object.fromEntries(JOINTS.map((name) => [name, [0, 0, 0]]));
     let rise = 0;
-    if (clipId === 'walk' || clipId === 'run') {
-        const run = clipId === 'run';
-        const stride = run ? 45 : 30;
-        out.LeftThigh[0] = stride * s;
-        out.RightThigh[0] = -stride * s;
-        out.LeftShin[0] = (run ? 40 : 28) * Math.max(0, -s);
-        out.RightShin[0] = (run ? 40 : 28) * Math.max(0, s);
-        out.LeftArm[0] = -(run ? 33 : 23) * s;
-        out.RightArm[0] = (run ? 33 : 23) * s;
+    if (clipId === 'walk') {
+        const step = seconds / clip.duration;
+        out.LeftThigh[0] = cyclicPose(WALK_HIP, step);
+        out.RightThigh[0] = cyclicPose(WALK_HIP, step + 0.5);
+        out.LeftShin[0] = cyclicPose(WALK_KNEE, step);
+        out.RightShin[0] = cyclicPose(WALK_KNEE, step + 0.5);
+        out.LeftArm[0] = -0.62 * out.LeftThigh[0];
+        out.RightArm[0] = -0.62 * out.RightThigh[0];
+        out.LeftElbow[0] = -12;
+        out.RightElbow[0] = -12;
+        out.Chest[0] = 1.5;
+        out.Chest[1] = 1.2 * s;
+        rise = cyclicPose(WALK_RISE, step);
+    } else if (clipId === 'run') {
+        out.LeftThigh[0] = 45 * s;
+        out.RightThigh[0] = -45 * s;
+        out.LeftShin[0] = 40 * Math.max(0, -s);
+        out.RightShin[0] = 40 * Math.max(0, s);
+        out.LeftArm[0] = -33 * s;
+        out.RightArm[0] = 33 * s;
+        out.LeftElbow[0] = -25;
+        out.RightElbow[0] = -25;
         out.WalkRoot[1] = 2.5 * s;
         out.WalkRoot[2] = 2 * c;
-        rise = (run ? 0.055 : 0.026) * (1 - Math.cos(phase * 2)) / 2;
+        rise = 0.055 * (1 - Math.cos(phase * 2)) / 2;
     } else if (clipId === 'sit') {
-        // In this rig negative X sends the knees towards the face. The shins
-        // cancel that hip rotation so they hang vertically in a seated pose.
-        out.LeftThigh[0] = -86;
-        out.RightThigh[0] = -86;
-        out.LeftShin[0] = 86;
-        out.RightShin[0] = 86;
-        out.LeftArm[0] = -20;
-        out.RightArm[0] = -20;
+        // Side-view seated posture: level thighs, vertical shins and flat feet.
+        // Forearms fold forward from independent elbows and rest above the knees.
+        out.LeftThigh[0] = -92;
+        out.RightThigh[0] = -92;
+        out.LeftShin[0] = 92;
+        out.RightShin[0] = 92;
+        out.LeftArm[0] = -30;
+        out.RightArm[0] = -30;
+        out.LeftElbow[0] = -45;
+        out.RightElbow[0] = -45;
         out.Chest[0] = 7;
         out.Head[0] = -2;
-        rise = -0.26;
+        rise = -0.30;
     } else if (clipId === 'guard') {
         out.LeftThigh[0] = 9;
         out.RightThigh[0] = -11;
         out.LeftArm[0] = -42 + 3 * s;
         out.RightArm[0] = -54 - 3 * s;
+        out.LeftElbow[0] = -16;
+        out.RightElbow[0] = -16;
         out.LeftArm[2] = -16;
         out.RightArm[2] = 20;
         out.WalkRoot[1] = 5 * s;
@@ -180,7 +215,7 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
     for (const joint of JOINTS) if (namedNodes[joint] === undefined) throw new Error(`Missing rig joint: ${joint}`);
     for (const eyelid of EYELIDS) if (namedNodes[eyelid] === undefined) throw new Error(`Missing blink eyelid: ${eyelid}`);
     json.animations = CLIPS.map((clip) => {
-        const count = clip.id === 'idle' ? 13 : 17;
+        const count = clip.id === 'idle' ? 13 : clip.id === 'sit' ? 2 : clip.id === 'guard' ? 9 : 17;
         const times = Array.from({ length: count }, (_, i) => clip.duration * i / (count - 1));
         const timeAccessor = accessor(times, 'SCALAR', [0], [clip.duration]);
         const samplers = [], channels = [];

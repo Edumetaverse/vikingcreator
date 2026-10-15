@@ -13,15 +13,23 @@ for (const name of names) {
     assert.equal(json.buffers[0].byteLength, binary.length);
     assert.deepEqual(json.animations.map((clip) => clip.name), CLIPS.map((clip) => clip.label));
     assert.equal(json.skins[0].joints.length, JOINTS.length);
+    assert.equal(json.accessors[json.skins[0].inverseBindMatrices].count, JOINTS.length);
     assert.equal(json.animations[0].channels.length, JOINTS.length + 1 + EYELIDS.length);
     for (const eyelid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === eyelid));
+    const leftArm = json.nodes.find((node) => node.name === 'LeftArm');
+    const rightArm = json.nodes.find((node) => node.name === 'RightArm');
+    assert.ok(leftArm.children.some((index) => json.nodes[index].name === 'LeftElbow'));
+    assert.ok(rightArm.children.some((index) => json.nodes[index].name === 'RightElbow'));
+    const lidMesh = json.meshes.find((mesh) => mesh.name === 'Blink eyelid pair');
+    assert.ok(json.accessors[lidMesh.primitives[0].attributes.POSITION].min[1] < -0.02,
+        'Closed lids must cover the lower eye');
     assert.ok(json.extensionsRequired.includes('KHR_mesh_quantization'));
     for (const animation of json.animations) {
         for (const sampler of animation.samplers) {
             const times = json.accessors[sampler.input];
             const values = json.accessors[sampler.output];
             assert.equal(times.count, values.count);
-            assert.ok(times.count >= (animation.name === 'Idle' ? 5 : 13));
+            assert.ok(times.count >= (animation.name === 'Sit' ? 2 : animation.name === 'Idle' ? 5 : animation.name === 'Guard' ? 9 : 13));
             assert.equal(sampler.interpolation, 'LINEAR');
         }
     }
@@ -44,6 +52,7 @@ for (const name of names) {
     assert.ok(high.json.accessors[high.json.meshes[0].primitives[0].attributes.POSITION].count > 7000);
     assert.equal(high.json.images.length, 3, 'High detail retains color, normal and surface maps');
     assert.equal(high.json.skins[0].joints.length, JOINTS.length);
+    assert.equal(high.json.accessors[high.json.skins[0].inverseBindMatrices].count, JOINTS.length);
     assert.deepEqual(high.json.animations.map((clip) => clip.name), CLIPS.map((clip) => clip.label));
     const highTexture = highSource.json.materials[0].pbrMetallicRoughness.baseColorTexture.index;
     const highImage = highSource.json.images[highSource.json.textures[highTexture].source];
@@ -71,4 +80,13 @@ for (const side of ['Left', 'Right']) {
     assert.ok(seatedA.rotations[`${side}Thigh`][0] < -80, 'Knees must bend forwards');
     assert.equal(seatedA.rotations[`${side}Thigh`][0] + seatedA.rotations[`${side}Shin`][0], 0,
         'Shins must hang down from the knees');
+    assert.ok(seatedA.rotations[`${side}Elbow`][0] < -40, 'Forearms must fold forwards');
+    assert.equal(seatedA.rotations[`${side}Arm`][0] + seatedA.rotations[`${side}Elbow`][0], -75,
+        'Forearms must extend towards the knees');
 }
+const walkContact = poseAt('walk', 0);
+const walkOpposite = poseAt('walk', CLIPS.find((clip) => clip.id === 'walk').duration / 2);
+assert.equal(walkContact.rotations.WalkRoot[1], 0, 'Walk must not yaw the pelvis');
+assert.equal(walkContact.rotations.WalkRoot[2], 0, 'Walk must not roll the pelvis');
+assert.equal(walkContact.rotations.LeftThigh[0], walkOpposite.rotations.RightThigh[0]);
+assert.ok(poseAt('walk', 0.78).rotations.LeftShin[0] > 30, 'Swing leg must lift to clear the ground');

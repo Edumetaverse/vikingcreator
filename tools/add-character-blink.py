@@ -12,12 +12,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / 'assets/models/characters'
 EYES = {
     # centre x, half-spacing, upper eye line y, face depth, eyelid tint
-    'Chief': (0.015, 0.024, 0.164, 0.278, (0.69, 0.41, 0.27, 1)),
-    'Farmer': (0.005, 0.041, 0.164, 0.158, (0.66, 0.39, 0.27, 1)),
-    'FemaleTrader': (0.002, 0.043, 0.168, 0.115, (0.78, 0.50, 0.39, 1)),
-    'Sheildmaiden': (0.014, 0.046, 0.159, 0.216, (0.80, 0.57, 0.46, 1)),
-    'Warrior': (0.007, 0.047, 0.163, 0.114, (0.71, 0.43, 0.29, 1)),
+    'Chief': (0.023, 0.032, 0.164, 0.230, (0.94, 0.38, 0.22, 1)),
+    'Farmer': (0.005, 0.041, 0.166, 0.185, (0.94, 0.40, 0.24, 1)),
+    'FemaleTrader': (0.007, 0.038, 0.170, 0.135, (1, 0.45, 0.32, 1)),
+    'Sheildmaiden': (0.022, 0.038, 0.161, 0.247, (1, 0.45, 0.32, 1)),
+    'Warrior': (0.007, 0.047, 0.165, 0.155, (0.96, 0.40, 0.23, 1)),
 }
+
+# The upper edge stays at the lash line; the lower edge travels over the eye.
+# This asymmetric shape closes the painted iris and sclera without growing up
+# into the eyebrow.
+LID_POSITIONS = [
+    -0.022, -0.010, 0, 0, -0.023, 0.003, 0.022, -0.010, 0,
+    -0.022, 0.001, 0, 0, 0.004, 0.003, 0.022, 0.001, 0,
+]
 
 
 def pack(document, binary):
@@ -47,6 +55,12 @@ def add_blink(path, centre, spacing, height, depth, color):
         mesh = document['meshes'][existing['BlinkLeft']['mesh']]
         material = document['materials'][mesh['primitives'][0]['material']]
         material['pbrMetallicRoughness']['baseColorFactor'] = list(color)
+        position = document['accessors'][mesh['primitives'][0]['attributes']['POSITION']]
+        view = document['bufferViews'][position['bufferView']]
+        offset = view.get('byteOffset', 0) + position.get('byteOffset', 0)
+        struct.pack_into('<18f', binary, offset, *LID_POSITIONS)
+        position['min'] = [-0.022, -0.023, 0]
+        position['max'] = [0.022, 0.004, 0.003]
         path.write_bytes(pack(document, binary))
         print(f'{path.name}: realigned blink ({path.stat().st_size:,} bytes)')
         return
@@ -72,14 +86,11 @@ def add_blink(path, centre, spacing, height, depth, color):
 
     # Two shallow triangles form each closed lid. Only their height scales for
     # the blink; at rest they collapse to a fine line along the upper lash.
-    positions = [
-        -0.022, -0.003, 0, 0, -0.010, 0.003, 0.022, -0.003, 0,
-        -0.022, 0.003, 0, 0, 0.010, 0.003, 0.022, 0.003, 0,
-    ]
+    positions = LID_POSITIONS
     normals = [0, 0, 1] * 6
     indices = [0, 1, 2, 3, 4, 1, 1, 4, 5, 1, 5, 2]
     position_accessor = accessor(struct.pack('<18f', *positions), 5126, 6, 'VEC3',
-                                 [-0.022, -0.010, 0], [0.022, 0.010, 0.003])
+                                 [-0.022, -0.023, 0], [0.022, 0.004, 0.003])
     normal_accessor = accessor(struct.pack('<18f', *normals), 5126, 6, 'VEC3')
     index_accessor = accessor(struct.pack('<12H', *indices), 5123, 12, 'SCALAR')
     material_index = len(document['materials'])
