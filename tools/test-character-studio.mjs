@@ -62,7 +62,7 @@ for (const joint of ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightSh
     assert.deepEqual(idleA.rotations[joint], idleB.rotations[joint], `${joint} must remain planted at idle`);
 assert.notDeepEqual(idleA.rotations.Head, idleB.rotations.Head);
 assert.notDeepEqual(idleA.rotations.Chest, idleB.rotations.Chest);
-assert.ok(blinkAmount('idle', 1.2) > 0.99);
+assert.ok(blinkAmount('idle', 1.2) > 0.84);
 assert.equal(blinkAmount('idle', 0), 0.001);
 assert.equal(blinkAmount('sit', 1.2), 0.001);
 const seatedA = poseAt('sit', 0), seatedB = poseAt('sit', 1);

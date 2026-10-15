@@ -31,7 +31,7 @@ export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
 export function blinkAmount(clipId, seconds) {
     if (clipId !== 'idle') return 0.001;
     const phase = ((seconds % 2.4) + 2.4) % 2.4;
-    return Math.max(0.001, 1 - Math.abs(phase - 1.2) / 0.12);
+    return Math.max(0.001, 0.85 * (1 - Math.abs(phase - 1.2) / 0.12));
 }
 
 export function poseAt(clipId, seconds) {

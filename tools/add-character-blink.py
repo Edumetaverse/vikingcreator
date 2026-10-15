@@ -11,11 +11,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / 'assets/models/characters'
 EYES = {
-    'Chief': (0.058, 0.197, (0.43, 0.24, 0.16, 1)),
-    'Farmer': (0.057, 0.158, (0.44, 0.26, 0.18, 1)),
-    'FemaleTrader': (0.055, 0.115, (0.49, 0.30, 0.24, 1)),
-    'Sheildmaiden': (0.055, 0.216, (0.50, 0.31, 0.24, 1)),
-    'Warrior': (0.057, 0.114, (0.45, 0.25, 0.17, 1)),
+    # centre x, half-spacing, upper eye line y, face depth, eyelid tint
+    'Chief': (0.015, 0.024, 0.164, 0.278, (0.69, 0.41, 0.27, 1)),
+    'Farmer': (0.005, 0.041, 0.164, 0.158, (0.66, 0.39, 0.27, 1)),
+    'FemaleTrader': (0.002, 0.043, 0.168, 0.115, (0.78, 0.50, 0.39, 1)),
+    'Sheildmaiden': (0.014, 0.046, 0.159, 0.216, (0.80, 0.57, 0.46, 1)),
+    'Warrior': (0.007, 0.047, 0.163, 0.114, (0.71, 0.43, 0.29, 1)),
 }
 
 
@@ -31,15 +32,23 @@ def pack(document, binary):
     return output
 
 
-def add_blink(path, spacing, depth, color):
+def add_blink(path, centre, spacing, height, depth, color):
     raw = path.read_bytes()
     json_length = struct.unpack_from('<I', raw, 12)[0]
     document = json.loads(raw[20:20 + json_length])
     binary_start = 20 + json_length + 8
     binary_length = struct.unpack_from('<I', raw, 20 + json_length)[0]
     binary = bytearray(raw[binary_start:binary_start + binary_length])
-    if any(node.get('name') == 'BlinkLeft' for node in document['nodes']):
-        print(f'{path.name}: blink already present')
+    existing = {node.get('name'): node for node in document['nodes']
+                if node.get('name') in ('BlinkLeft', 'BlinkRight')}
+    if len(existing) == 2:
+        existing['BlinkLeft']['translation'] = [centre - spacing, height, depth]
+        existing['BlinkRight']['translation'] = [centre + spacing, height, depth]
+        mesh = document['meshes'][existing['BlinkLeft']['mesh']]
+        material = document['materials'][mesh['primitives'][0]['material']]
+        material['pbrMetallicRoughness']['baseColorFactor'] = list(color)
+        path.write_bytes(pack(document, binary))
+        print(f'{path.name}: realigned blink ({path.stat().st_size:,} bytes)')
         return
 
     def accessor(payload, component_type, count, kind, minimum=None, maximum=None):
@@ -94,7 +103,7 @@ def add_blink(path, spacing, depth, color):
         index = len(document['nodes'])
         document['nodes'].append({
             'name': name, 'mesh': mesh_index,
-            'translation': [side * spacing, 0.155, depth],
+            'translation': [centre + side * spacing, height, depth],
             'scale': [1, 0.001, 1],
         })
         document['nodes'][head].setdefault('children', []).append(index)
@@ -105,5 +114,5 @@ def add_blink(path, spacing, depth, color):
 
 if __name__ == '__main__':
     for tier in ('studio', 'studio-high'):
-        for name, (spacing, depth, color) in EYES.items():
-            add_blink(ROOT / tier / f'{name}.glb', spacing, depth, color)
+        for name, (centre, spacing, height, depth, color) in EYES.items():
+            add_blink(ROOT / tier / f'{name}.glb', centre, spacing, height, depth, color)
