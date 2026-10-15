@@ -1,8 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015ac';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016aj';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261015ac';
+const ASSET_VERSION = '20261016aj';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },
@@ -411,6 +411,11 @@ async function exportGlb(tier) {
         }
         if (tier === 'compact' && buffer.byteLength >= 200_000)
             throw new Error(`Compact export is ${(buffer.byteLength / 1000).toFixed(0)} KB. Try another palette.`);
+        if (tier === 'high') {
+            setMessage('Compressing full-detail export…');
+            const { compressGlbLosslessly } = await import('../lib/meshopt-export.bundle.js');
+            buffer = await compressGlbLosslessly(buffer);
+        }
         const blob = new Blob([buffer], { type: 'model/gltf-binary' });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');

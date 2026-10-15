@@ -1,0 +1,16 @@
+{
+  "name": "vikingcreator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:meshopt": "esbuild src/meshopt-export.js --bundle --format=esm --platform=browser --target=es2020 --minify --external:node:fs --external:node:path --outfile=lib/meshopt-export.bundle.js",
+    "test": "node tools/test-character-studio.mjs && node tools/test-meshopt-export.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "esbuild": "^0.28.2",
+    "meshoptimizer": "^1.3.0"
+  }
+}

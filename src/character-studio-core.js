@@ -25,7 +25,7 @@ export const CLIPS = [
     { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' }
 ];
 
-export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow'];
+export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow', 'FrontGarment', 'FrontHem'];
 export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
 
 // Choose a fresh schedule for each page load and each preview cycle. GLB
@@ -140,17 +140,19 @@ export function poseAt(clipId, seconds) {
     } else if (clipId === 'sit') {
         // Side-view seated posture: level thighs, vertical shins and flat feet.
         // Forearms fold forward from independent elbows and rest above the knees.
-        out.LeftThigh[0] = -92;
-        out.RightThigh[0] = -92;
-        out.LeftShin[0] = 92;
-        out.RightShin[0] = 92;
+        out.LeftThigh[0] = -75;
+        out.RightThigh[0] = -75;
+        out.LeftShin[0] = 75;
+        out.RightShin[0] = 75;
         out.LeftArm[0] = -30;
         out.RightArm[0] = -30;
         out.LeftElbow[0] = -45;
         out.RightElbow[0] = -45;
+        out.FrontGarment[0] = -65;
+        out.FrontHem[0] = 50;
         out.Chest[0] = 7;
         out.Head[0] = -2;
-        rise = -0.32;
+        rise = -0.24;
     } else if (clipId === 'idle') {
         // Idle is planted. Only the new upper-body joints move.
         out.Chest[0] = 0.9 * s;
