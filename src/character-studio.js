@@ -1,7 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015b';
 
 const $ = (id) => document.getElementById(id);
+const ASSET_VERSION = '20261015b';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },
@@ -150,7 +151,7 @@ async function initScene() {
 async function getSource(id, tier = 'high') {
     const key = `${tier}:${id}`;
     const folder = tier === 'high' ? 'studio-high' : 'studio';
-    if (!sourceCache.has(key)) sourceCache.set(key, fetch(`./assets/models/characters/${folder}/${id}.glb`).then((response) => {
+    if (!sourceCache.has(key)) sourceCache.set(key, fetch(`./assets/models/characters/${folder}/${id}.glb?v=${ASSET_VERSION}`).then((response) => {
         if (!response.ok) throw new Error(`Could not load ${id}.glb (${response.status}).`);
         return response.arrayBuffer();
     }));
@@ -159,7 +160,7 @@ async function getSource(id, tier = 'high') {
 
 async function getAsset(id) {
     if (!assetCache.has(id)) assetCache.set(id, new Promise((resolve, reject) => {
-        const asset = new pc.Asset(id, 'container', { url: `./assets/models/characters/studio-high/${id}.glb` });
+        const asset = new pc.Asset(id, 'container', { url: `./assets/models/characters/studio-high/${id}.glb?v=${ASSET_VERSION}` });
         asset.once('load', () => resolve(asset));
         asset.once('error', (error) => reject(error || new Error(`Could not open ${id}.glb`)));
         app.assets.add(asset);
