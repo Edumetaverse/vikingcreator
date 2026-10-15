@@ -1,8 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015y';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261015z';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261015y';
+const ASSET_VERSION = '20261015z';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },

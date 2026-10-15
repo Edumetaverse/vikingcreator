@@ -96,7 +96,7 @@ export function poseAt(clipId, seconds) {
         out.RightElbow[0] = -45;
         out.Chest[0] = 7;
         out.Head[0] = -2;
-        rise = -0.30;
+        rise = -0.32;
     } else if (clipId === 'guard') {
         out.LeftThigh[0] = 9;
         out.RightThigh[0] = -11;

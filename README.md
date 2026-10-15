@@ -30,5 +30,5 @@ no build step or backend.
 To regenerate the included models from the simulator workspace, rebuild the
 compact and high-detail assets, then run
 `python tools/apply-sit-skin-weights.py`,
-`python tools/add-character-elbows.py`, `python tools/add-character-blink.py`,
+`python tools/align-sit-knees.py`, `python tools/add-character-elbows.py`, `python tools/add-character-blink.py`,
 and `node tools/test-character-studio.mjs`.

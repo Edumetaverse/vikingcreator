@@ -18,6 +18,11 @@ for (const name of names) {
     for (const eyelid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === eyelid));
     const leftArm = json.nodes.find((node) => node.name === 'LeftArm');
     const rightArm = json.nodes.find((node) => node.name === 'RightArm');
+    for (const side of ['Left', 'Right']) {
+        const shin = json.nodes.find((node) => node.name === `${side}Shin`);
+        assert.ok(Math.abs(shin.translation[1] + 0.30) < 0.0001,
+            'Knee pivot must match the visible knee for grounded Sit');
+    }
     assert.ok(leftArm.children.some((index) => json.nodes[index].name === 'LeftElbow'));
     assert.ok(rightArm.children.some((index) => json.nodes[index].name === 'RightElbow'));
     const lidMesh = json.meshes.find((mesh) => mesh.name === 'Blink eyelid pair');
