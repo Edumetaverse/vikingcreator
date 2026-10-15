@@ -1,8 +1,8 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016aj';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016an';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261016aj';
+const ASSET_VERSION = '20261016an';
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },
@@ -75,8 +75,8 @@ function initUi() {
         localStorage.setItem('viking-character-forge', JSON.stringify({ preset: state.preset, dye: state.dye, hair: state.hair, name: state.name }));
         setMessage('Design saved in this browser');
     });
-    $('export-glb').addEventListener('click', () => exportGlb('high'));
-    $('export-compact').addEventListener('click', () => exportGlb('compact'));
+    $('export-glb').addEventListener('click', () => exportGlb('standard'));
+    $('export-meshopt').addEventListener('click', () => exportGlb('meshopt'));
     const dialog = $('reference-dialog');
     $('reference-button').addEventListener('click', () => dialog.showModal());
     $('close-reference').addEventListener('click', () => dialog.close());
@@ -173,7 +173,7 @@ async function loadCharacter() {
     const ticket = ++loadCounter;
     const id = state.preset;
     $('export-glb').disabled = true;
-    $('export-compact').disabled = true;
+    $('export-meshopt').disabled = true;
     sourceBuffer = null;
     textureCanvas = null;
     $('model-status').textContent = `Loading ${id}…`;
@@ -198,7 +198,7 @@ async function loadCharacter() {
         await applyPalette();
         if (ticket === loadCounter) {
             $('export-glb').disabled = false;
-            $('export-compact').disabled = false;
+            $('export-meshopt').disabled = false;
         }
     } catch (error) {
         $('model-status').textContent = 'Model unavailable';
@@ -382,37 +382,22 @@ async function applyPalette() {
 
 async function exportGlb(tier) {
     if (!sourceBuffer || !model) return;
-    const buttons = [$('export-glb'), $('export-compact')];
+    const buttons = [$('export-glb'), $('export-meshopt')];
     buttons.forEach((button) => { button.disabled = true; });
     try {
         const name = state.name.trim() || PRESETS.find((p) => p.id === state.preset).label;
-        const source = tier === 'compact' ? await getSource(state.preset, 'compact') : sourceBuffer;
+        const source = sourceBuffer;
         let buffer;
         const paletteId = `${state.dye}-garments-${state.hair}-hair`;
         if (!textureCanvas || (state.dye === 'original' && state.hair === 'original'))
             buffer = buildCharacterGlb(source, null, name, paletteId);
-        else if (tier === 'high') {
+        else {
             const image = await new Promise((resolve) => textureCanvas.toBlob(resolve, 'image/jpeg', 0.90));
             if (!image) throw new Error('Could not encode colour palette.');
             buffer = buildCharacterGlb(source, new Uint8Array(await image.arrayBuffer()), name, paletteId);
-        } else {
-            for (const size of [512, 384, 320, 256]) {
-                const atlas = document.createElement('canvas');
-                atlas.width = size; atlas.height = size;
-                atlas.getContext('2d').drawImage(textureCanvas, 0, 0, size, size);
-                for (const quality of [0.72, 0.56, 0.42]) {
-                    const image = await new Promise((resolve) => atlas.toBlob(resolve, 'image/jpeg', quality));
-                    if (!image) throw new Error('Could not encode colour palette.');
-                    buffer = buildCharacterGlb(source, new Uint8Array(await image.arrayBuffer()), name, paletteId);
-                    if (buffer.byteLength < 200_000) break;
-                }
-                if (buffer.byteLength < 200_000) break;
-            }
         }
-        if (tier === 'compact' && buffer.byteLength >= 200_000)
-            throw new Error(`Compact export is ${(buffer.byteLength / 1000).toFixed(0)} KB. Try another palette.`);
-        if (tier === 'high') {
-            setMessage('Compressing full-detail export…');
+        if (tier === 'meshopt') {
+            setMessage('Packing full-detail export without reducing geometry or textures…');
             const { compressGlbLosslessly } = await import('../lib/meshopt-export.bundle.js');
             buffer = await compressGlbLosslessly(buffer);
         }
@@ -420,7 +405,7 @@ async function exportGlb(tier) {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'viking'}-${tier === 'compact' ? 'compact' : 'high-detail'}-animated.glb`;
+        anchor.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'viking'}-${tier === 'meshopt' ? 'lossless-meshopt' : 'standard'}-animated.glb`;
         document.body.appendChild(anchor);
         anchor.click(); anchor.remove();
         setTimeout(() => URL.revokeObjectURL(url), 30000);

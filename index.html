@@ -61,10 +61,10 @@
           </div>
           <div class="export-block">
             <div class="section-head"><span>03</span><h2>Take it with you</h2></div>
-            <button id="export-glb" class="export-button" type="button" disabled>↓ &nbsp; Export high-detail GLB · recommended</button>
-            <button id="export-compact" class="compact-button" type="button" disabled>↓ &nbsp; Export compact GLB · under 200 KB</button>
+            <button id="export-glb" class="export-button" type="button" disabled>↓ &nbsp; Export full quality GLB · compatible</button>
+            <button id="export-meshopt" class="compact-button" type="button" disabled>↓ &nbsp; Export smaller GLB · lossless Meshopt</button>
             <button id="save-design" class="save-button" type="button">Save design in this browser</button>
-          <p class="export-note">High detail uses lossless mesh compression while preserving the finer mesh and 1024 px textures (about 420–625 KB). Compact reduces geometry and texture size for a strict 200 KB budget.</p>
+          <p class="export-note">Both exports keep the full mesh, 1024 px textures and all animations. Standard GLB works in more engines (about 600–850 KB). Lossless Meshopt is smaller (about 420–625 KB) and needs EXT_meshopt_compression support. A 200 KB version visibly loses detail, so it is no longer offered.</p>
           </div>
         </div>
       </aside>
@@ -72,6 +72,6 @@
     <footer class="footer"><span>BUILT FOR THE VIKING SHIP SIMULATOR</span><span id="footer-message">READY TO FORGE</span><span>CHARACTER STUDIES / LOW POLY</span></footer>
   </div>
   <dialog id="reference-dialog"><button id="close-reference" type="button" aria-label="Close reference">×</button><img src="./assets/reference-vikings.jpeg" alt="Reference showing five faceted Viking characters in layered clothing"><p>Reference image supplied for the desired character detail and style.</p></dialog>
-  <script type="module" src="./src/character-studio.js?v=20261016aj"></script>
+  <script type="module" src="./src/character-studio.js?v=20261016an"></script>
 </body>
 </html>
