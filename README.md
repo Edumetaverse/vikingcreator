@@ -4,11 +4,10 @@ A standalone, browser-based Viking character creator. Open the published site at
 <https://edumetaverse.github.io/vikingcreator/>.
 
 Choose one of five character presets, adjust garment and hair colours, and preview
-Idle, Blink, Walk, Run, Sit and Guard. Idle includes a blink; Blink repeats the
-eyelid mesh morph for inspection. Sit bends both knees
+Idle, Blink, Walk, Run and Sit. Idle blinks at varied intervals; Blink repeats
+slower eyelid mesh morphs for inspection. Sit bends both knees
 forward and leans the torso slightly; the preview has no seat. Both GLB exports
-include an eleven-joint skin and all six animation clips. Guard raises the bent
-arms clear of the clothing. The high-detail export
+include an eleven-joint skin and all five animation clips. The high-detail export
 preserves the 1024 px textures and currently ranges from about 600–841 KB by
 character. The compact export enforces a 200,000-byte limit with reduced detail.
 The walk uses mirrored contact, down, passing and up poses based on the
@@ -33,5 +32,4 @@ To regenerate the included models from the simulator workspace, rebuild the
 compact and high-detail assets, then run
 `python tools/apply-sit-skin-weights.py`,
 `python tools/align-sit-knees.py`, `python tools/add-character-elbows.py`, `python tools/add-character-blink.py`,
-and `node tools/test-character-studio.mjs`. Check Guard clearance with
-`python tools/check-guard-clearance.py` (NumPy required).
+and `node tools/test-character-studio.mjs`.

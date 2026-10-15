@@ -18,31 +18,72 @@ export const DYES = [
 ];
 
 export const CLIPS = [
-    { id: 'idle', label: 'Idle', duration: 2.4, note: 'Planted feet · breath · blink · head tilt' },
-    { id: 'blink', label: 'Blink', duration: 1, note: 'Face mesh closes and opens both eyes' },
+    { id: 'idle', label: 'Idle', duration: 28.8, note: 'Planted feet · breath · irregular blink · head tilt' },
+    { id: 'blink', label: 'Blink', duration: 14.4, note: 'Slower blinks at random intervals' },
     { id: 'walk', label: 'Walk', duration: 1.25, note: 'Grounded travelling gait' },
     { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' },
-    { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' },
-    { id: 'guard', label: 'Guard', duration: 1.6, note: 'Raised arms · ready stance' }
+    { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' }
 ];
 
 export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow'];
 export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
 
+// Choose a fresh schedule for each page load and each preview cycle. GLB
+// exports capture the first long cycle because a file animation must loop.
+const BLINK_SEED = Math.floor(Math.random() * 0x100000000);
+const BLINK_OFFSETS = {
+    idle: [-0.35, 0.55, -0.50, 0.65, -0.25, 0.40, -0.55],
+    blink: [-0.25, 0.45, -0.40, 0.55]
+};
+function randomUnit(clipId, cycle, index) {
+    let value = (BLINK_SEED ^ (clipId === 'idle' ? 0x9e3779b9 : 0x85ebca6b) ^
+        Math.imul(cycle + 1, 0x27d4eb2d) ^ Math.imul(index + 1, 0x165667b1)) >>> 0;
+    value ^= value >>> 16;
+    value = Math.imul(value, 0x7feb352d) >>> 0;
+    value ^= value >>> 15;
+    value = Math.imul(value, 0x846ca68b) >>> 0;
+    value ^= value >>> 16;
+    return (value >>> 0) / 0x100000000;
+}
+function scheduleBlinks(clipId, cycle) {
+    const duration = CLIPS.find((clip) => clip.id === clipId).duration;
+    const offsets = BLINK_OFFSETS[clipId];
+    const slot = duration / offsets.length;
+    const phaseShift = (randomUnit(clipId, cycle, 999) - 0.5) * 1.0;
+    return offsets.map((offset, index) => index * slot + 1.3 + offset + phaseShift +
+        (randomUnit(clipId, cycle, index) - 0.5) * 0.24);
+}
+const BLINK_STARTS = {
+    idle: scheduleBlinks('idle', 0),
+    blink: scheduleBlinks('blink', 0)
+};
+const BLINK_CLOSE = 0.14;
+const BLINK_HOLD = 0.08;
+const BLINK_OPEN = 0.20;
+
+export function blinkKeyframes(clipId) {
+    const clip = CLIPS.find((item) => item.id === clipId);
+    if (!clip || !BLINK_STARTS[clipId]) return [];
+    return [0, ...BLINK_STARTS[clipId].flatMap((start) => [
+        start, start + BLINK_CLOSE, start + BLINK_CLOSE + BLINK_HOLD,
+        start + BLINK_CLOSE + BLINK_HOLD + BLINK_OPEN
+    ]), clip.duration];
+}
+
 export function blinkAmount(clipId, seconds) {
-    if (clipId === 'blink') {
-        const phase = ((seconds % 1) + 1) % 1;
-        if (phase < 0.12 || phase >= 0.66) return 0;
-        if (phase < 0.22) return (phase - 0.12) / 0.10;
-        if (phase < 0.52) return 1;
-        return (0.66 - phase) / 0.14;
+    const clip = CLIPS.find((item) => item.id === clipId);
+    if (!clip || !BLINK_STARTS[clipId]) return 0;
+    const phase = ((seconds % clip.duration) + clip.duration) % clip.duration;
+    const cycle = Math.floor(seconds / clip.duration);
+    const starts = cycle === 0 ? BLINK_STARTS[clipId] : scheduleBlinks(clipId, cycle);
+    for (const start of starts) {
+        const elapsed = phase - start;
+        if (elapsed < 0 || elapsed >= BLINK_CLOSE + BLINK_HOLD + BLINK_OPEN) continue;
+        if (elapsed < BLINK_CLOSE) return elapsed / BLINK_CLOSE;
+        if (elapsed < BLINK_CLOSE + BLINK_HOLD) return 1;
+        return (BLINK_CLOSE + BLINK_HOLD + BLINK_OPEN - elapsed) / BLINK_OPEN;
     }
-    if (clipId !== 'idle') return 0;
-    const phase = ((seconds % 2.4) + 2.4) % 2.4;
-    if (phase < 1.08 || phase >= 1.42) return 0;
-    if (phase < 1.16) return (phase - 1.08) / 0.08;
-    if (phase < 1.30) return 1;
-    return (1.42 - phase) / 0.12;
+    return 0;
 }
 
 // Eight authored beats across a full two-step walk. The second leg reads the
@@ -65,7 +106,9 @@ const WALK_RISE = [0, -0.009, 0.003, 0.011, 0, -0.009, 0.003, 0.011];
 
 export function poseAt(clipId, seconds) {
     const clip = CLIPS.find((item) => item.id === clipId) || CLIPS[0];
-    const phase = seconds / clip.duration * Math.PI * 2;
+    // The long Idle timeline holds several irregular blinks; breathing still
+    // repeats every 2.4 seconds and ends on its starting pose.
+    const phase = seconds / (clipId === 'idle' ? 2.4 : clip.duration) * Math.PI * 2;
     const s = Math.sin(phase), c = Math.cos(phase);
     const out = Object.fromEntries(JOINTS.map((name) => [name, [0, 0, 0]]));
     let rise = 0;
@@ -108,17 +151,6 @@ export function poseAt(clipId, seconds) {
         out.Chest[0] = 7;
         out.Head[0] = -2;
         rise = -0.32;
-    } else if (clipId === 'guard') {
-        out.LeftThigh[0] = 9;
-        out.RightThigh[0] = -11;
-        out.LeftArm[0] = -68 + 2 * s;
-        out.RightArm[0] = -68 - 2 * s;
-        out.LeftElbow[0] = -28;
-        out.RightElbow[0] = -28;
-        out.LeftArm[2] = -30;
-        out.RightArm[2] = 30;
-        out.WalkRoot[1] = 5 * s;
-        rise = -0.035;
     } else if (clipId === 'idle') {
         // Idle is planted. Only the new upper-body joints move.
         out.Chest[0] = 0.9 * s;
@@ -226,7 +258,7 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
     for (const joint of JOINTS) if (namedNodes[joint] === undefined) throw new Error(`Missing rig joint: ${joint}`);
     for (const eyelid of EYELIDS) if (namedNodes[eyelid] === undefined) throw new Error(`Missing blink eyelid: ${eyelid}`);
     json.animations = CLIPS.map((clip) => {
-        const count = clip.id === 'idle' ? 13 : clip.id === 'blink' || clip.id === 'sit' ? 2 : clip.id === 'guard' ? 9 : 17;
+        const count = clip.id === 'idle' ? 73 : clip.id === 'blink' || clip.id === 'sit' ? 2 : 17;
         const times = Array.from({ length: count }, (_, i) => clip.duration * i / (count - 1));
         const timeAccessor = accessor(times, 'SCALAR', [0], [clip.duration]);
         const samplers = [], channels = [];
@@ -245,9 +277,7 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
             samplers.push({ input: timeAccessor, output: accessor(offsets, 'VEC3'), interpolation: 'LINEAR' });
         }
         if (clip.id === 'idle' || clip.id === 'blink') {
-            const blinkTimes = clip.id === 'idle'
-                ? [0, 1.08, 1.16, 1.30, 1.42, clip.duration]
-                : [0, 0.12, 0.22, 0.52, 0.66, clip.duration];
+            const blinkTimes = blinkKeyframes(clip.id);
             const blinkInput = accessor(blinkTimes, 'SCALAR', [0], [clip.duration]);
             const blinkOutput = accessor(blinkTimes.map((time) => blinkAmount(clip.id, time)), 'SCALAR');
             for (const eyelid of EYELIDS) {
