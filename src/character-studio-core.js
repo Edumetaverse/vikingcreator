@@ -8,7 +8,7 @@ export const PRESETS = [
     { id: 'ElderSeer', label: 'Elder Seer', subtitle: 'Grey beard · fur robes · rune staff', initials: 'ES', base: 'Chief', defaultDye: 'ochre', defaultHair: 'silver' },
     { id: 'ShieldBearer', label: 'Shield Bearer', subtitle: 'Copper braids · shield · leather armor', initials: 'SB', base: 'Sheildmaiden', defaultDye: 'wine', defaultHair: 'copper' },
     { id: 'Blacksmith', label: 'Blacksmith', subtitle: 'Forge apron · hammer · bracers', initials: 'BS', base: 'Farmer', defaultDye: 'slate', defaultHair: 'raven' },
-    { id: 'ArmoredJarl', label: 'Armored Jarl', subtitle: 'Steel helm · scale mail · battle axe', initials: 'AJ', base: 'Warrior', defaultDye: 'slate', defaultHair: 'chestnut' }
+    { id: 'ArmoredJarl', label: 'Armored Jarl', subtitle: 'Scale mail · fur mantle · battle axe', initials: 'AJ', base: 'Warrior', defaultDye: 'slate', defaultHair: 'chestnut' }
 ];
 
 export const DYES = [

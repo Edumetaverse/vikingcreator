@@ -203,23 +203,8 @@ def blacksmith(parts):
 
 
 def armored_jarl(parts):
-    head, chest, left = parts['Head'], parts['Chest'], parts['LeftElbow']
-    # Open-faced helm: a short faceted dome, thin brow, and nose guard.
-    sides = 10
-    for i in range(sides):
-        a = 2*math.pi*i/sides
-        b = 2*math.pi*(i+1)/sides
-        lower_a = (.175*math.cos(a), .29, .145*math.sin(a))
-        lower_b = (.175*math.cos(b), .29, .145*math.sin(b))
-        upper_a = (.10*math.cos(a), .38, .085*math.sin(a))
-        upper_b = (.10*math.cos(b), .38, .085*math.sin(b))
-        head.quad('steel_dark' if i % 2 else 'steel', lower_a, lower_b, upper_b, upper_a)
-        head.tri('steel_light', upper_a, upper_b, (0, .43, 0))
-    head.box('steel_light', (0, .29, .08), (.32, .025, .035))
-    for x in (-.17, .17):
-        head.box('steel_dark', (x, .16, .015), (.025, .10, .06))
-        head.orb('bronze', (x, .29, .08), (.015, .015, .012), 6, 3)
-    # Small scale details reveal the original tunic and preserve the face.
+    chest, left = parts['Chest'], parts['LeftElbow']
+    # Leave the original hair and face fully visible.
     for row in range(4):
         y = .17 - row * .08
         for col in range(5):

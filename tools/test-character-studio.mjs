@@ -110,6 +110,9 @@ for (const name of newNames) {
     assert.equal(json.images.length, 3);
     assert.ok(json.accessors[json.meshes[0].primitives[0].attributes.POSITION].count > 7000);
     assert.ok(json.nodes.some((node) => node.name?.startsWith(`Accessory_${name}_`)));
+    if (name === 'ArmoredJarl')
+        assert.ok(!json.nodes.some((node) => node.name === 'Accessory_ArmoredJarl_Head'),
+            'Armored Jarl must show the original hair and face without a helmet');
     assert.ok(json.meshes.length > 3);
     for (const lid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === lid));
     const textureIndex = source.json.materials[0].pbrMetallicRoughness.baseColorTexture.index;
