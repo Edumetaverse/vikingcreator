@@ -17,5 +17,5 @@ the character models are fetched by the browser.
 ## GitHub Pages
 
 The workflow in `.github/workflows/pages.yml` deploys the site on pushes to
-`main`. On first setup, set **Settings → Pages → Build and deployment → Source**
-to **GitHub Actions**. The site needs no build step or backend.
+`main`. GitHub Pages is configured to build with GitHub Actions. The site needs
+no build step or backend.
