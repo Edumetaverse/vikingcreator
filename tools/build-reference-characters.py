@@ -6,7 +6,6 @@ palette controls and four animation clips continue to work on every variant.
 """
 from __future__ import annotations
 
-import copy
 import json
 import math
 import struct
@@ -18,7 +17,7 @@ VARIANTS = {
     'ElderSeer': 'Farmer',
     'ShieldBearer': 'Sheildmaiden',
     'Blacksmith': 'Farmer',
-    'ArmoredJarl': 'Warrior',
+    'ArmoredJarl': 'Farmer',
 }
 
 PALETTE = {
@@ -36,8 +35,53 @@ PALETTE = {
     'bronze': (0.61, 0.39, 0.17, 0.67),
     'bone': (0.77, 0.71, 0.53, 0.0),
     'rune': (0.28, 0.62, 0.59, 0.22),
-    'skin': (0.70, 0.48, 0.35, 0.0),
+    'skin': (0.78, 0.55, 0.42, 0.0),
+    'skin_light': (0.89, 0.65, 0.52, 0.0),
     'cloth_dark': (0.15, 0.18, 0.17, 0.0),
+    'garment': (0.55, 0.35, 0.16, 0.0),
+    'garment_light': (0.66, 0.44, 0.23, 0.0),
+    'garment_dark': (0.37, 0.23, 0.12, 0.0),
+    'hair': (0.68, 0.68, 0.65, 0.0),
+    'hair_light': (0.80, 0.79, 0.74, 0.0),
+    'hair_dark': (0.43, 0.42, 0.40, 0.0),
+}
+
+ROLE_PALETTE = {
+    'ElderSeer': {
+        'garment': (0.48, 0.36, 0.22),
+        'garment_light': (0.59, 0.45, 0.28),
+        'garment_dark': (0.32, 0.25, 0.18),
+        'hair': (0.69, 0.69, 0.66),
+        'hair_light': (0.82, 0.81, 0.77),
+        'hair_dark': (0.49, 0.48, 0.46),
+    },
+    'ShieldBearer': {
+        'garment': (0.35, 0.15, 0.18),
+        'garment_light': (0.47, 0.22, 0.23),
+        'garment_dark': (0.22, 0.10, 0.12),
+        'hair': (0.56, 0.22, 0.09),
+        'hair_light': (0.72, 0.34, 0.12),
+        'hair_dark': (0.35, 0.13, 0.06),
+    },
+    'Blacksmith': {
+        'garment': (0.21, 0.23, 0.22),
+        'garment_light': (0.29, 0.30, 0.28),
+        'garment_dark': (0.13, 0.15, 0.15),
+        'hair': (0.14, 0.12, 0.11),
+        'hair_light': (0.25, 0.21, 0.18),
+        'hair_dark': (0.08, 0.07, 0.07),
+    },
+    'ArmoredJarl': {
+        'garment': (0.25, 0.29, 0.30),
+        'garment_light': (0.34, 0.40, 0.40),
+        'garment_dark': (0.15, 0.19, 0.21),
+        'steel_dark': (0.30, 0.37, 0.40),
+        'steel': (0.46, 0.52, 0.55),
+        'steel_light': (0.66, 0.72, 0.74),
+        'hair': (0.28, 0.18, 0.13),
+        'hair_light': (0.40, 0.28, 0.20),
+        'hair_dark': (0.16, 0.10, 0.08),
+    }
 }
 
 
@@ -67,6 +111,18 @@ class Geometry:
     def quad(self, material, a, b, c, d):
         self.tri(material, a, b, c)
         self.tri(material, a, c, d)
+
+    def surface(self, rows, materials):
+        """Connect equally sized curved rows with faceted cloth or armor."""
+        for row in range(len(rows) - 1):
+            for col in range(len(rows[row]) - 1):
+                material = materials[(row + col) % len(materials)]
+                a, b = rows[row][col], rows[row][col + 1]
+                c, d = rows[row + 1][col + 1], rows[row + 1][col]
+                if sum(point[2] for point in (a, b, c, d)) > 0:
+                    self.quad(material, a, d, c, b)
+                else:
+                    self.quad(material, a, b, c, d)
 
     def box(self, material, center, size):
         x, y, z = center
@@ -126,62 +182,110 @@ class Geometry:
             self.tri(inner, (x, y, z + .016), pi, qi)
 
 
+def long_beard(head, length):
+    rows = [
+        [(-.065, -.035, .17), (0, -.05, .205), (.065, -.035, .17)],
+        [(-.052, -.12, .185), (0, -.14, .218), (.052, -.12, .185)],
+        [(-.009, -length, .18), (0, -length*1.04, .195),
+         (.009, -length, .18)],
+    ]
+    head.surface(rows, ['hair', 'hair_light', 'hair_dark'])
+
+
+def robe_rows(ys, widths, depths, rear=False):
+    rows = []
+    for y, width, depth in zip(ys, widths, depths):
+        row = []
+        for step in range(7):
+            u = (step - 3) / 3
+            z = depth * math.sqrt(max(0, 1-u*u))
+            row.append((width*u, y + .012*abs(u), -z if rear else z))
+        rows.append(row)
+    return rows
+
+
 def seer(parts):
-    # Farmer's detailed cloak has no shield; its textured fur and silver hair
-    # give the elder a complete silhouette without loose prop geometry.
-    return
+    root, head = parts['WalkRoot'], parts['Head']
+    # A long, faceted robe gives a different silhouette from the short Settler
+    # tunic. The front and back stand clear of the animated legs.
+    front = robe_rows([-.18, -.39, -.60, -.78],
+                      [.28, .31, .35, .38], [.24, .29, .31, .34])
+    rear = robe_rows([-.18, -.39, -.60, -.78],
+                     [.28, .31, .35, .38], [.21, .24, .28, .32], True)
+    root.surface(front, ['garment', 'garment_light', 'garment_dark'])
+    root.surface(rear, ['garment_dark', 'garment', 'garment_light'])
+    for rows in (front, rear):
+        root.surface([rows[-2], rows[-1]], ['garment_dark', 'garment_light'])
+    for side in (-1, 1):
+        root.rod('fur_light', (side*.25, -.20, .10),
+                 (side*.34, -.77, .03), .012, 5)
+    long_beard(head, .24)
 
 
 def shield_bearer(parts):
-    chest, root = parts['Chest'], parts['WalkRoot']
-    # A broad round shield sits behind one shoulder, like the reference.
+    chest, root, head = parts['Chest'], parts['WalkRoot'], parts['Head']
+    # Fitted leather breastplate leaves the fur collar and dress visible.
+    chest.orb('leather', (0, .10, .18), (.225, .19, .105), 12, 6)
+    chest.orb('leather_light', (0, .17, .258), (.16, .035, .022), 10, 3)
+    for row in range(3):
+        y = .19 - row*.075
+        for col in range(5):
+            x = (col-2)*.067 + (.03 if row%2 else 0)
+            z = .288 - .05*(abs(x)/.23)**2
+            chest.tri('steel_dark' if (row+col)%3 else 'bronze',
+                      (x-.028,y+.012,z), (x,y-.04,z+.008),
+                      (x+.028,y+.012,z))
+    for x in (-.19,.19):
+        chest.orb('bronze', (x, .14, .25), (.016,.016,.012), 6, 3)
+    for side in (-1, 1):
+        tasset = [
+            [(side*.05, -.16, .27), (side*.13, -.16, .29), (side*.23, -.16, .22)],
+            [(side*.05, -.34, .29), (side*.15, -.38, .31), (side*.25, -.35, .23)],
+        ]
+        root.surface(tasset, ['leather', 'garment_dark'])
+        root.tri('bronze', (side*.14, -.33, .32),
+                 (side*.20, -.33, .29), (side*.17, -.39, .31))
+    # Large shield remains behind one shoulder, but now has timber planks.
     chest.disc('steel_dark', 'wood', (.37, .10), .36, -.23, 14)
-    chest.orb('bronze', (.37, .10, -.19), (.075, .075, .045), 8, 3)
+    for i in range(6):
+        x = .16 + i*.075
+        chest.quad('wood_light' if i % 2 else 'wood',
+                   (x-.028, -.17, -.197), (x+.028, -.17, -.197),
+                   (x+.028, .36, -.197), (x-.028, .36, -.197))
+    chest.orb('bronze', (.37, .10, -.17), (.075, .075, .045), 8, 3)
     for angle in (0, math.pi/2, math.pi, 3*math.pi/2):
         chest.orb('bronze', (.37 + .27*math.cos(angle), .10 + .27*math.sin(angle), -.20),
                   (.023, .023, .014), 6, 3)
-    # Narrow harness and small plates preserve the detailed underlying outfit.
-    chest.quad('leather_light', (-.22, .27, .24), (-.18, .27, .24),
-               (.18, -.13, .265), (.22, -.13, .265))
-    for side in (-1, 1):
-        for row in range(3):
-            x = side * (.14 + .045*(row % 2))
-            y = .12 - .09*row
-            chest.tri('steel_dark', (x-.035, y+.022, .268), (x+.035, y+.022, .268),
-                      (x, y-.04, .275))
-    # The belt and original garment supply enough small detail; a second sword
-    # would hover away from the animated thigh in walking clips.
+    chest.rod('leather_light', (-.14, .27, .25), (.13, -.02, .28), .012, 5)
 
 
 def blacksmith(parts):
-    root, right = parts['WalkRoot'], parts['RightElbow']
-    # Curved, faceted apron follows the tunic instead of masking the torso.
-    top = [(-.17, .14, .24), (0, .14, .275), (.17, .14, .24)]
-    middle = [(-.20, -.16, .285), (0, -.16, .31), (.20, -.16, .285)]
-    bottom = [(-.22, -.48, .31), (0, -.52, .35), (.22, -.48, .31)]
-    for row, next_row in ((top, middle), (middle, bottom)):
-        for col in range(2):
-            root.quad('cloth_dark' if (col + (row is middle)) % 2 else 'leather',
-                      row[col], row[col+1], next_row[col+1], next_row[col])
-    # Small irregular patches read as worn leather without wide flat straps.
-    root.tri('leather_light', (-.16, .105, .267), (-.025, .085, .300),
-             (-.11, -.04, .310))
-    root.tri('fur', (.055, .085, .298), (.16, .035, .271),
-             (.11, -.055, .301))
-    root.tri('leather_light', (.015, -.105, .328), (.18, -.09, .292),
-             (.10, -.19, .322))
-    root.tri('leather_light', (-.16, -.18, .296), (-.05, -.19, .318),
-             (-.11, -.32, .331))
-    root.tri('fur', (.08, -.27, .327), (.17, -.32, .303), (.13, -.42, .317))
-    root.quad('leather', (-.20, -.31, .32), (-.08, -.31, .34),
-              (-.08, -.47, .35), (-.20, -.47, .32))
-    for x in (-.20, .20):
-        for y in (-.26, -.47):
-            root.orb('bronze', (x, y, .32), (.012, .012, .008), 6, 3)
-    # Narrow bracers follow the arms without covering the original skin mesh.
+    root, chest, head, right = (parts['WalkRoot'], parts['Chest'],
+                               parts['Head'], parts['RightElbow'])
+    # Narrow bracers and an apron distinguish the forge worker while keeping
+    # the original textured arms and face visible.
     for bone in ('LeftArm', 'RightArm'):
         arm = parts[bone]
-        arm.box('leather', (0, -.29, .02), (.15, .07, .13))
+        arm.orb('leather', (0, -.29, .02), (.095, .035, .10), 8, 3)
+    # The apron wraps around the torso and projects forward from the thighs.
+    bib = []
+    for y, width, depth in ((.15,.125,.25), (.02,.16,.285), (-.14,.19,.30)):
+        bib.append([(width*u, y, depth*(1-.17*u*u)) for u in (-1,-.5,0,.5,1)])
+    chest.surface(bib, ['garment', 'garment_light', 'garment_dark'])
+    skirt = []
+    for y, width, depth in ((-.10,.19,.29),(-.27,.22,.32),(-.48,.24,.34)):
+        skirt.append([(width*u, y, depth*(1-.2*u*u)) for u in (-1,-.5,0,.5,1)])
+    root.surface(skirt, ['garment_dark', 'garment', 'garment_light'])
+    for side in (-1, 1):
+        chest.rod('leather_light', (side*.125, .15, .25),
+                  (side*.17, -.14, .28), .014, 5)
+        root.rod('leather_light', (side*.17, -.10, .28),
+                 (side*.23, -.47, .30), .010, 5)
+    root.quad('leather', (-.19, -.29, .315), (-.07, -.29, .35),
+              (-.07, -.44, .36), (-.19, -.44, .32))
+    for x in (-.19, .19):
+        for y in (-.27, -.46):
+            root.orb('bronze', (x, y, .33), (.012, .012, .008), 6, 3)
     # Hammer in the right hand: long wooden haft and broad iron head.
     right.rod('wood', (.01, -.43, .15), (.01, -.08, .15), .025, 7)
     right.box('iron', (.01, -.37, .15), (.25, .12, .12))
@@ -190,18 +294,31 @@ def blacksmith(parts):
 
 
 def armored_jarl(parts):
-    chest, left = parts['Chest'], parts['LeftElbow']
-    # Leave the original hair and face fully visible.
-    for row in range(4):
-        y = .17 - row * .08
-        for col in range(5):
-            x = (col - 2) * .085 + (.04 if row % 2 else 0)
-            if abs(x) > .22:
+    chest, root, head, left = (parts['Chest'], parts['WalkRoot'],
+                              parts['Head'], parts['LeftElbow'])
+    # The mail follows the front of the torso, with a waist edge rather than
+    # a protruding oval that reads as a shield strapped over the tunic.
+    mail_rows = []
+    for y, width, depth in ((.33,.17,.25),(.19,.22,.27),(.02,.235,.28),(-.15,.21,.27)):
+        mail_rows.append([(width*u, y, depth-.055*u*u) for u in (-1,-.66,-.33,0,.33,.66,1)])
+    chest.surface(mail_rows, ['steel_dark', 'steel', 'steel_dark'])
+    for row in range(5):
+        y = .28 - row*.075
+        for col in range(6):
+            x = (col-2.5)*.066 + (.023 if row % 2 else 0)
+            if abs(x) > .18:
                 continue
-            chest.tri('steel_light' if (row+col) % 3 == 0 else 'steel',
-                      (x-.035, y+.025, .245), (x+.035, y+.025, .245), (x, y-.04, .26))
-    chest.quad('leather_light', (-.23, .17, .265), (-.20, .18, .265),
-               (.20, -.13, .275), (.23, -.14, .275))
+            depth = .273 - .055*(x/.235)**2
+            chest.tri('steel_light' if (row+col)%4 == 0 else 'steel',
+                      (x-.028,y+.01,depth), (x,y-.045,depth+.008),
+                      (x+.028,y+.01,depth))
+    chest.rod('leather_light', (-.13,.30,.255), (.13,-.06,.29), .013, 6)
+    for side in (-1,1):
+        elbow=parts['LeftElbow' if side < 0 else 'RightElbow']
+        elbow.orb('steel_dark', (0,-.13,.015), (.085,.105,.08), 8, 3)
+        tasset=[[(side*.04,-.18,.25),(side*.14,-.18,.28),(side*.26,-.18,.21)],
+                [(side*.04,-.37,.27),(side*.16,-.39,.30),(side*.26,-.37,.22)]]
+        root.surface(tasset,['steel_dark','steel'])
     # Broad battle axe with a readable blade silhouette.
     left.rod('wood', (0, -.44, .16), (0, .03, .16), .027, 7)
     left.box('bronze', (0, -.33, .16), (.07, .055, .07))
@@ -235,6 +352,8 @@ def build(name, base):
     DESIGNS[name](parts)
     materials = {}
     for material_name, (r, g, b, metalness) in PALETTE.items():
+        if material_name in ROLE_PALETTE[name]:
+            r, g, b = ROLE_PALETTE[name][material_name]
         materials[material_name] = len(doc['materials'])
         doc['materials'].append({'name': f'Accessory {material_name}', 'doubleSided': True,
                                  'pbrMetallicRoughness': {'baseColorFactor': [r, g, b, 1],
