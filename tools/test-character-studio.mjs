@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { buildCharacterGlb, parseGlb, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, blinkKeyframes } from '../src/character-studio-core.js';
 
 const names = ['Chief', 'Farmer', 'FemaleTrader', 'Sheildmaiden', 'Warrior'];
-assert.deepEqual(CLIPS.map((clip) => clip.label), ['Idle', 'Blink', 'Walk', 'Run', 'Sit']);
+assert.deepEqual(CLIPS.map((clip) => clip.label), ['Idle', 'Blink', 'Walk', 'Run']);
 for (const name of names) {
     const file = readFileSync(`assets/models/characters/studio/${name}.glb`);
     const input = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
@@ -43,11 +43,6 @@ for (const name of names) {
     }
     const leftArm = json.nodes.find((node) => node.name === 'LeftArm');
     const rightArm = json.nodes.find((node) => node.name === 'RightArm');
-    for (const side of ['Left', 'Right']) {
-        const shin = json.nodes.find((node) => node.name === `${side}Shin`);
-        assert.ok(Math.abs(shin.translation[1] + 0.30) < 0.0001,
-            'Knee pivot must match the visible knee for grounded Sit');
-    }
     assert.ok(leftArm.children.some((index) => json.nodes[index].name === 'LeftElbow'));
     assert.ok(rightArm.children.some((index) => json.nodes[index].name === 'RightElbow'));
     for (const side of ['Left', 'Right']) {
@@ -66,7 +61,7 @@ for (const name of names) {
             const times = json.accessors[sampler.input];
             const values = json.accessors[sampler.output];
             assert.equal(times.count, values.count);
-            assert.ok(times.count >= (animation.name === 'Sit' || animation.name === 'Blink' ? 2 : animation.name === 'Idle' ? 30 : 13));
+            assert.ok(times.count >= (animation.name === 'Blink' ? 2 : animation.name === 'Idle' ? 30 : 13));
             assert.equal(sampler.interpolation, 'LINEAR');
         }
     }
@@ -114,7 +109,6 @@ assert.ok(Math.abs(blinkAmount('idle', idleBlinkStart + 0.14) - 1) < 1e-9);
 assert.ok(Math.abs(blinkAmount('blink', soloBlinkStart + 0.14) - 1) < 1e-9);
 assert.equal(blinkAmount('blink', 0), 0);
 assert.equal(blinkAmount('idle', 0), 0);
-assert.equal(blinkAmount('sit', 1.2), 0);
 assert.equal(blinkAmount('idle', idleBlinkStart + 0.5), 0, 'A blink must finish before the next one');
 assert.equal(blinkAmount('idle', 28.8), 0, 'Idle morph must have an open-eye loop boundary');
 assert.ok(Array.from({ length: 2880 }, (_, i) => blinkAmount('idle', 28.8 + i / 100))
@@ -124,19 +118,6 @@ assert.equal(blinkKeyframes('blink').length, 18, 'Blink exports four irregular b
 const starts = blinkKeyframes('blink').slice(1, -1).filter((_, index) => index % 4 === 0);
 const gaps = starts.slice(1).map((time, index) => time - starts[index]);
 assert.ok(Math.max(...gaps) - Math.min(...gaps) > 1, 'Blink spacing must vary');
-const seatedA = poseAt('sit', 0), seatedB = poseAt('sit', 1);
-assert.deepEqual(seatedA, seatedB, 'Seated pose must not wobble');
-for (const side of ['Left', 'Right']) {
-    assert.equal(seatedA.rotations[`${side}Thigh`][0], -75, 'Thighs must reach the reference seating angle');
-    assert.equal(seatedA.rotations[`${side}Thigh`][0] + seatedA.rotations[`${side}Shin`][0], 0,
-        'Shins must hang down from the knees');
-    assert.ok(seatedA.rotations[`${side}Elbow`][0] < -40, 'Forearms must fold forwards');
-    assert.equal(seatedA.rotations[`${side}Arm`][0] + seatedA.rotations[`${side}Elbow`][0], -75,
-        'Forearms must extend towards the knees');
-}
-assert.equal(seatedA.rise, -0.24, 'Seated hip height must keep the boots on the floor');
-assert.equal(seatedA.rotations.FrontGarment[0], -65);
-assert.equal(seatedA.rotations.FrontHem[0], 50);
 const walkContact = poseAt('walk', 0);
 const walkOpposite = poseAt('walk', CLIPS.find((clip) => clip.id === 'walk').duration / 2);
 assert.equal(walkContact.rotations.WalkRoot[1], 0, 'Walk must not yaw the pelvis');

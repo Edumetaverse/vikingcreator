@@ -1,5 +1,4 @@
-// Shared pose and GLB export logic for the character studio. Both detail tiers
-// have the same eleven-joint skin; this module adds authored keyframes.
+// Shared pose and GLB export logic for the character studio.
 export const PRESETS = [
     { id: 'Chief', label: 'Chieftain', subtitle: 'Fur cloak · mail · braided beard', initials: 'CH' },
     { id: 'Farmer', label: 'Settler', subtitle: 'Wool tunic · working boots', initials: 'SE' },
@@ -21,8 +20,7 @@ export const CLIPS = [
     { id: 'idle', label: 'Idle', duration: 28.8, note: 'Planted feet · breath · irregular blink · head tilt' },
     { id: 'blink', label: 'Blink', duration: 14.4, note: 'Slower blinks at random intervals' },
     { id: 'walk', label: 'Walk', duration: 1.25, note: 'Grounded travelling gait' },
-    { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' },
-    { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' }
+    { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' }
 ];
 
 export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head', 'LeftElbow', 'RightElbow', 'FrontGarment', 'FrontHem'];
@@ -137,22 +135,6 @@ export function poseAt(clipId, seconds) {
         out.WalkRoot[1] = 2.5 * s;
         out.WalkRoot[2] = 2 * c;
         rise = 0.055 * (1 - Math.cos(phase * 2)) / 2;
-    } else if (clipId === 'sit') {
-        // Side-view seated posture: level thighs, vertical shins and flat feet.
-        // Forearms fold forward from independent elbows and rest above the knees.
-        out.LeftThigh[0] = -75;
-        out.RightThigh[0] = -75;
-        out.LeftShin[0] = 75;
-        out.RightShin[0] = 75;
-        out.LeftArm[0] = -30;
-        out.RightArm[0] = -30;
-        out.LeftElbow[0] = -45;
-        out.RightElbow[0] = -45;
-        out.FrontGarment[0] = -65;
-        out.FrontHem[0] = 50;
-        out.Chest[0] = 7;
-        out.Head[0] = -2;
-        rise = -0.24;
     } else if (clipId === 'idle') {
         // Idle is planted. Only the new upper-body joints move.
         out.Chest[0] = 0.9 * s;
@@ -260,7 +242,7 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
     for (const joint of JOINTS) if (namedNodes[joint] === undefined) throw new Error(`Missing rig joint: ${joint}`);
     for (const eyelid of EYELIDS) if (namedNodes[eyelid] === undefined) throw new Error(`Missing blink eyelid: ${eyelid}`);
     json.animations = CLIPS.map((clip) => {
-        const count = clip.id === 'idle' ? 73 : clip.id === 'blink' || clip.id === 'sit' ? 2 : 17;
+        const count = clip.id === 'idle' ? 73 : clip.id === 'blink' ? 2 : 17;
         const times = Array.from({ length: count }, (_, i) => clip.duration * i / (count - 1));
         const timeAccessor = accessor(times, 'SCALAR', [0], [clip.duration]);
         const samplers = [], channels = [];

@@ -1,5 +1,5 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016an';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016ao';
 
 const $ = (id) => document.getElementById(id);
 const ASSET_VERSION = '20261016an';
@@ -35,7 +35,7 @@ function updateControls() {
         `<span class="dye-caption">${DYES.find((d) => d.id === state.dye).label}</span>`;
     $('hair-list').innerHTML = HAIR_COLORS.map((color) => `<button class="dye" type="button" data-hair="${color.id}" title="${color.label}" aria-label="${color.label}" aria-pressed="${state.hair === color.id}"><span style="background:${color.color}"></span></button>`).join('') +
         `<span class="dye-caption">${HAIR_COLORS.find((color) => color.id === state.hair).label}</span>`;
-    const symbols = { idle: '◇', blink: '◉', walk: '↗', run: '➜', sit: '▣' };
+    const symbols = { idle: '◇', blink: '◉', walk: '↗', run: '➜' };
     $('animation-list').innerHTML = CLIPS.map((clip) => `<button class="animation-option" type="button" data-clip="${clip.id}" aria-pressed="${state.clip === clip.id}"><span class="animation-symbol">${symbols[clip.id]}</span><span class="animation-text"><strong>${clip.label}</strong><small>${clip.note}</small></span><span class="animation-play">${state.clip === clip.id ? 'Ⅱ' : '▶'}</span></button>`).join('');
     $('character-name').value = state.name;
 }

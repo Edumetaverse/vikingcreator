@@ -4,12 +4,9 @@ A standalone, browser-based Viking character creator. Open the published site at
 <https://edumetaverse.github.io/vikingcreator/>.
 
 Choose one of five character presets, adjust garment and hair colours, and preview
-Idle, Blink, Walk, Run and Sit. Idle blinks at varied intervals; Blink repeats
-slower eyelid mesh morphs for inspection. Sit bends both knees
-forward and leans the torso slightly; the preview has no seat. Both GLB exports
-include a thirteen-joint skin and all five animation clips. Sit places the
-thighs at 75 degrees, lowers the hips by 0.24 m to keep feet on the floor, and
-uses separate hip and knee hinges for the front of long garments. The standard
+Idle, Blink, Walk and Run. Idle blinks at varied intervals; Blink repeats
+slower eyelid mesh morphs for inspection. Both GLB exports include a
+thirteen-joint skin and all four animation clips. The standard
 export preserves the full mesh and 1024 px textures in a widely compatible GLB
 (about 600–850 KB). The smaller full-quality option uses `EXT_meshopt_compression`
 to reduce the GLB to about 418–623 KB without changing decoded mesh attributes,
