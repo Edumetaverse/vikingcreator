@@ -1,5 +1,5 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, poseAt, parseGlb, buildCharacterGlb } from './character-studio-core.js';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js';
 
 const $ = (id) => document.getElementById(id);
 const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
@@ -19,7 +19,7 @@ const state = {
     clip: 'idle', name: typeof saved.name === 'string' ? saved.name.slice(0, 40) : 'Harald',
     yaw: -15, playing: true, elapsed: 0
 };
-let app, device, model, pivot, joints = {}, sourceBuffer, textureCanvas, activeTexture;
+let app, device, model, pivot, joints = {}, eyelids = [], sourceBuffer, textureCanvas, activeTexture;
 let loadCounter = 0, paletteCounter = 0, dragX = null;
 const sourceCache = new Map();
 const assetCache = new Map();
@@ -127,23 +127,6 @@ async function initScene() {
     stone.metalness = 0.05; stone.gloss = 0.15; stone.update();
     plinth.render.material = stone;
     app.root.addChild(plinth);
-    const stool = new pc.Entity('Sit preview stool');
-    stool.addComponent('render', { type: 'cylinder', castShadows: true, receiveShadows: true });
-    stool.setLocalScale(0.98, 0.08, 0.62);
-    stool.setPosition(0, 0.48, -0.18);
-    const wood = new pc.StandardMaterial();
-    wood.diffuse = new pc.Color(0.29, 0.17, 0.10); wood.gloss = 0.08; wood.update();
-    stool.render.material = wood;
-    app.root.addChild(stool);
-    const stoolLegs = [-0.34, 0.34].map((x) => {
-        const leg = new pc.Entity('Sit preview stool leg');
-        leg.addComponent('render', { type: 'cylinder', castShadows: true });
-        leg.setLocalScale(0.12, 0.48, 0.12);
-        leg.setPosition(x, 0.21, -0.18);
-        leg.render.material = wood;
-        app.root.addChild(leg);
-        return leg;
-    });
     pivot = new pc.Entity('Character turntable');
     app.root.addChild(pivot);
     app.on('update', (dt) => {
@@ -151,10 +134,9 @@ async function initScene() {
         if (state.playing) state.elapsed += delta;
         const pose = poseAt(state.clip, state.elapsed);
         for (const joint of JOINTS) joints[joint]?.setLocalEulerAngles(...pose.rotations[joint]);
+        for (const eyelid of eyelids) eyelid.setLocalScale(1, blinkAmount(state.clip, state.elapsed), 1);
         if (joints.WalkRoot) joints.WalkRoot.setLocalPosition(0, pose.rise, 0);
         pivot.setLocalEulerAngles(0, state.yaw, 0);
-        stool.enabled = state.clip === 'sit';
-        for (const leg of stoolLegs) leg.enabled = state.clip === 'sit';
     });
     const resize = () => {
         const rect = canvas.getBoundingClientRect();
@@ -205,6 +187,8 @@ async function loadCharacter() {
         pivot.addChild(model);
         joints = Object.fromEntries(JOINTS.map((joint) => [joint, model.findByName(joint)]));
         if (Object.values(joints).some((joint) => !joint)) throw new Error('Character rig is incomplete.');
+        eyelids = EYELIDS.map((eyelid) => model.findByName(eyelid));
+        if (eyelids.some((eyelid) => !eyelid)) throw new Error('Character blink geometry is incomplete.');
         const skinned = model.findComponents('render').some((render) => render.meshInstances.some((mi) => mi.skinInstance));
         if (!skinned) throw new Error('Character has no skinned mesh.');
         sourceBuffer = source;
@@ -385,6 +369,7 @@ async function applyPalette() {
     activeTexture = texture;
     textureCanvas = canvas;
     for (const render of model.findComponents('render')) for (const mi of render.meshInstances) {
+        if (EYELIDS.includes(render.entity.name)) continue;
         if (!mi._forgeOriginalMaterial) mi._forgeOriginalMaterial = mi.material;
         const material = mi._forgeOriginalMaterial.clone();
         material.diffuseMap = texture;
@@ -403,7 +388,8 @@ async function exportGlb(tier) {
         const source = tier === 'compact' ? await getSource(state.preset, 'compact') : sourceBuffer;
         let buffer;
         const paletteId = `${state.dye}-garments-${state.hair}-hair`;
-        if (!textureCanvas) buffer = buildCharacterGlb(source, null, name, paletteId);
+        if (!textureCanvas || (state.dye === 'original' && state.hair === 'original'))
+            buffer = buildCharacterGlb(source, null, name, paletteId);
         else if (tier === 'high') {
             const image = await new Promise((resolve) => textureCanvas.toBlob(resolve, 'image/jpeg', 0.90));
             if (!image) throw new Error('Could not encode colour palette.');

@@ -18,7 +18,7 @@ export const DYES = [
 ];
 
 export const CLIPS = [
-    { id: 'idle', label: 'Idle', duration: 2.4, note: 'Planted feet · breath · head tilt' },
+    { id: 'idle', label: 'Idle', duration: 2.4, note: 'Planted feet · breath · blink · head tilt' },
     { id: 'walk', label: 'Walk', duration: 1.25, note: 'Grounded travelling gait' },
     { id: 'run', label: 'Run', duration: 0.72, note: 'Fast stride and arm drive' },
     { id: 'sit', label: 'Sit', duration: 2.2, note: 'Resting seated pose' },
@@ -26,6 +26,13 @@ export const CLIPS = [
 ];
 
 export const JOINTS = ['WalkRoot', 'LeftThigh', 'RightThigh', 'LeftShin', 'RightShin', 'LeftArm', 'RightArm', 'Chest', 'Head'];
+export const EYELIDS = ['BlinkLeft', 'BlinkRight'];
+
+export function blinkAmount(clipId, seconds) {
+    if (clipId !== 'idle') return 0.001;
+    const phase = ((seconds % 2.4) + 2.4) % 2.4;
+    return Math.max(0.001, 1 - Math.abs(phase - 1.2) / 0.12);
+}
 
 export function poseAt(clipId, seconds) {
     const clip = CLIPS.find((item) => item.id === clipId) || CLIPS[0];
@@ -46,14 +53,17 @@ export function poseAt(clipId, seconds) {
         out.WalkRoot[2] = 2 * c;
         rise = (run ? 0.055 : 0.026) * (1 - Math.cos(phase * 2)) / 2;
     } else if (clipId === 'sit') {
-        out.LeftThigh[0] = -62 + 1.5 * s;
-        out.RightThigh[0] = -62 - 1.5 * s;
-        out.LeftShin[0] = 70;
-        out.RightShin[0] = 70;
-        out.LeftArm[0] = -12 + 2 * s;
-        out.RightArm[0] = -12 - 2 * s;
-        out.WalkRoot[0] = 4;
-        rise = -0.16 + 0.004 * c;
+        // In this rig negative X sends the knees towards the face. The shins
+        // cancel that hip rotation so they hang vertically in a seated pose.
+        out.LeftThigh[0] = -86;
+        out.RightThigh[0] = -86;
+        out.LeftShin[0] = 86;
+        out.RightShin[0] = 86;
+        out.LeftArm[0] = -20;
+        out.RightArm[0] = -20;
+        out.Chest[0] = 7;
+        out.Head[0] = -2;
+        rise = -0.26;
     } else if (clipId === 'guard') {
         out.LeftThigh[0] = 9;
         out.RightThigh[0] = -11;
@@ -168,6 +178,7 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
     };
     const namedNodes = Object.fromEntries(json.nodes.map((node, index) => [node.name, index]));
     for (const joint of JOINTS) if (namedNodes[joint] === undefined) throw new Error(`Missing rig joint: ${joint}`);
+    for (const eyelid of EYELIDS) if (namedNodes[eyelid] === undefined) throw new Error(`Missing blink eyelid: ${eyelid}`);
     json.animations = CLIPS.map((clip) => {
         const count = clip.id === 'idle' ? 13 : 17;
         const times = Array.from({ length: count }, (_, i) => clip.duration * i / (count - 1));
@@ -184,6 +195,16 @@ export function buildCharacterGlb(sourceBuffer, textureBytes, name, dyeId = 'ori
         const offsets = times.flatMap((t) => [rest[0], rest[1] + poseAt(clip.id, t).rise, rest[2]]);
         channels.push({ sampler: samplers.length, target: { node: namedNodes.WalkRoot, path: 'translation' } });
         samplers.push({ input: timeAccessor, output: accessor(offsets, 'VEC3'), interpolation: 'LINEAR' });
+        if (clip.id === 'idle') {
+            const blinkTimes = [0, 1.08, 1.2, 1.32, clip.duration];
+            const blinkInput = accessor(blinkTimes, 'SCALAR', [0], [clip.duration]);
+            const scales = blinkTimes.flatMap((time) => [1, blinkAmount(clip.id, time), 1]);
+            const blinkOutput = accessor(scales, 'VEC3');
+            for (const eyelid of EYELIDS) {
+                channels.push({ sampler: samplers.length, target: { node: namedNodes[eyelid], path: 'scale' } });
+                samplers.push({ input: blinkInput, output: blinkOutput, interpolation: 'LINEAR' });
+            }
+        }
         return { name: clip.label, samplers, channels };
     });
     json.asset = { ...json.asset, generator: 'Viking Character Forge' };
