@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildCharacterGlb, parseGlb, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, blinkKeyframes } from '../src/character-studio-core.js';
+import { buildCharacterGlb, parseGlb, PRESETS, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, blinkKeyframes } from '../src/character-studio-core.js';
 
 const names = ['Chief', 'Farmer', 'FemaleTrader', 'Sheildmaiden', 'Warrior'];
+const newNames = ['ElderSeer', 'ShieldBearer', 'Blacksmith', 'ArmoredJarl'];
+assert.equal(PRESETS.length, 9);
+assert.deepEqual(PRESETS.slice(5).map((preset) => preset.id), newNames);
 assert.deepEqual(CLIPS.map((clip) => clip.label), ['Idle', 'Blink', 'Walk', 'Run']);
 for (const name of names) {
     const file = readFileSync(`assets/models/characters/studio/${name}.glb`);
@@ -94,6 +97,30 @@ for (const name of names) {
     assert.equal(highDyed.json.images[highSource.json.textures[highTexture].source].mimeType, 'image/jpeg');
     assert.equal(highDyed.json.buffers[0].byteLength, highDyed.binary.length);
     console.log(`${name} high detail: ${highOutput.byteLength.toLocaleString()} bytes`);
+}
+
+for (const name of newNames) {
+    const file = readFileSync(`assets/models/characters/studio-high/${name}.glb`);
+    const input = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+    const source = parseGlb(input);
+    const exported = parseGlb(buildCharacterGlb(input, null, name));
+    const { json } = exported;
+    assert.deepEqual(json.animations.map((clip) => clip.name), CLIPS.map((clip) => clip.label));
+    assert.equal(json.skins[0].joints.length, JOINTS.length);
+    assert.equal(json.images.length, 3);
+    assert.ok(json.accessors[json.meshes[0].primitives[0].attributes.POSITION].count > 7000);
+    assert.ok(json.nodes.some((node) => node.name?.startsWith(`Accessory_${name}_`)));
+    assert.ok(json.meshes.length > 3);
+    for (const lid of EYELIDS) assert.ok(json.nodes.some((node) => node.name === lid));
+    const textureIndex = source.json.materials[0].pbrMetallicRoughness.baseColorTexture.index;
+    const imageIndex = source.json.textures[textureIndex].source;
+    const view = source.json.bufferViews[source.json.images[imageIndex].bufferView];
+    const image = source.binary.slice(view.byteOffset, view.byteOffset + view.byteLength);
+    const dyed = parseGlb(buildCharacterGlb(input, image, `${name} recolored`, 'oxblood'));
+    assert.equal(dyed.json.images[imageIndex].mimeType, 'image/jpeg');
+    assert.equal(dyed.json.meshes.length, json.meshes.length);
+    assert.equal(dyed.json.materials.length, json.materials.length);
+    console.log(`${name} high detail: ${exported.binary.byteLength.toLocaleString()} binary bytes`);
 }
 
 const idleA = poseAt('idle', 0), idleB = poseAt('idle', 0.61);

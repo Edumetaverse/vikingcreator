@@ -10,7 +10,8 @@ const io = new NodeIO().registerExtensions([EXTMeshoptCompression])
 await MeshoptEncoder.ready;
 await MeshoptDecoder.ready;
 
-for (const name of ['Chief', 'Farmer', 'FemaleTrader', 'Sheildmaiden', 'Warrior']) {
+for (const name of ['Chief', 'Farmer', 'FemaleTrader', 'Sheildmaiden', 'Warrior',
+    'ElderSeer', 'ShieldBearer', 'Blacksmith', 'ArmoredJarl']) {
     const source = readFileSync(`assets/models/characters/studio-high/${name}.glb`);
     const input = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
     const raw = buildCharacterGlb(input, null, name);

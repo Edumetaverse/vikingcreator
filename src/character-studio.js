@@ -1,9 +1,9 @@
 import * as pc from 'playcanvas';
-import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016ao';
+import { PRESETS, DYES, CLIPS, JOINTS, EYELIDS, poseAt, blinkAmount, parseGlb, buildCharacterGlb } from './character-studio-core.js?v=20261016at';
 
 const $ = (id) => document.getElementById(id);
-const ASSET_VERSION = '20261016an';
-const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf'];
+const ASSET_VERSION = '20261016at';
+const defaults = ['Harald', 'Bjørn', 'Tove', 'Sigrid', 'Ulf', 'Eirik', 'Astrid', 'Torsten', 'Ragnar'];
 const HAIR_COLORS = [
     { id: 'original', label: 'Original', color: '#8f7159' },
     { id: 'raven', label: 'Raven black', color: '#292727', hue: 27, sat: 0.18, base: 0.05, scale: 0.42 },
@@ -46,7 +46,10 @@ function initUi() {
         const button = event.target.closest('[data-preset]');
         if (!button || button.dataset.preset === state.preset) return;
         state.preset = button.dataset.preset;
-        state.name = defaults[PRESETS.findIndex((p) => p.id === state.preset)];
+        const preset = PRESETS.find((p) => p.id === state.preset);
+        state.name = defaults[PRESETS.indexOf(preset)];
+        state.dye = preset.defaultDye || 'original';
+        state.hair = preset.defaultHair || 'original';
         state.elapsed = 0;
         updateControls(); loadCharacter();
     });
@@ -290,9 +293,10 @@ function recolor(image, dye, hair, source) {
     const data = frame.data;
     const original = new Uint8ClampedArray(data);
     const key = `${state.preset}:${canvas.width}`;
+    const base = PRESETS.find((preset) => preset.id === state.preset)?.base || state.preset;
     if (dye.id !== 'original') {
         if (!garmentMaskCache.has(key)) {
-            const skirt = state.preset === 'FemaleTrader' || state.preset === 'Sheildmaiden';
+            const skirt = base === 'FemaleTrader' || base === 'Sheildmaiden';
             const minY = skirt ? -0.63 : -0.37;
             garmentMaskCache.set(key, surfaceMask(source, canvas.width, canvas.height,
                 (x, y) => y >= minY && y <= 0.49 && Math.abs(x) <= 0.33));
@@ -315,14 +319,14 @@ function recolor(image, dye, hair, source) {
         }
     }
     if (hair.id !== 'original') {
-        const blondeSource = state.preset === 'Sheildmaiden';
-        const braidedSource = state.preset === 'FemaleTrader';
-        const longHairSource = state.preset === 'Chief' || state.preset === 'Warrior';
+        const blondeSource = base === 'Sheildmaiden';
+        const braidedSource = base === 'FemaleTrader';
+        const longHairSource = base === 'Chief' || base === 'Warrior';
         if (!hairMaskCache.has(key)) hairMaskCache.set(key, surfaceMask(source, canvas.width, canvas.height,
             blondeSource
                 ? (x, y, z) => y >= 0.18 && Math.abs(x) <= 0.19 && Math.abs(z) <= 0.26
                 : (x, y, z) => (y >= 0.72 && Math.abs(x) <= 0.16 && Math.abs(z) <= 0.23) ||
-                    (state.preset === 'Chief'
+                    (base === 'Chief'
                         ? y >= 0.59 && Math.abs(x) <= 0.12 && z >= 0.14 && z <= 0.24
                         : y >= 0.62 && Math.abs(x) <= 0.16 && z >= 0.02 && z <= 0.24) ||
                     (longHairSource && y >= 0.57 && Math.abs(x) <= 0.14 && z <= -0.12 && z >= -0.24) ||
@@ -370,7 +374,7 @@ async function applyPalette() {
     activeTexture = texture;
     textureCanvas = canvas;
     for (const render of model.findComponents('render')) for (const mi of render.meshInstances) {
-        if (EYELIDS.includes(render.entity.name)) continue;
+        if (EYELIDS.includes(render.entity.name) || render.entity.name.startsWith('Accessory_')) continue;
         if (!mi._forgeOriginalMaterial) mi._forgeOriginalMaterial = mi.material;
         const material = mi._forgeOriginalMaterial.clone();
         material.diffuseMap = texture;
