@@ -5,7 +5,7 @@ export const PRESETS = [
     { id: 'FemaleTrader', label: 'Trader', subtitle: 'Linen apron · long braid', initials: 'TR' },
     { id: 'Sheildmaiden', label: 'Shieldmaiden', subtitle: 'Layered dress · beadwork', initials: 'SH' },
     { id: 'Warrior', label: 'Warrior', subtitle: 'Leather vest · bracers', initials: 'WA' },
-    { id: 'ElderSeer', label: 'Elder Seer', subtitle: 'Grey beard · fur robes · rune staff', initials: 'ES', base: 'Chief', defaultDye: 'ochre', defaultHair: 'silver' },
+    { id: 'ElderSeer', label: 'Elder Seer', subtitle: 'Silver hair · wool tunic · fur cloak', initials: 'ES', base: 'Farmer', defaultDye: 'ochre', defaultHair: 'silver' },
     { id: 'ShieldBearer', label: 'Shield Bearer', subtitle: 'Copper braids · shield · leather armor', initials: 'SB', base: 'Sheildmaiden', defaultDye: 'wine', defaultHair: 'copper' },
     { id: 'Blacksmith', label: 'Blacksmith', subtitle: 'Forge apron · hammer · bracers', initials: 'BS', base: 'Farmer', defaultDye: 'slate', defaultHair: 'raven' },
     { id: 'ArmoredJarl', label: 'Armored Jarl', subtitle: 'Scale mail · fur mantle · battle axe', initials: 'AJ', base: 'Warrior', defaultDye: 'slate', defaultHair: 'chestnut' }

@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = ROOT / 'assets/models/characters/studio-high'
 VARIANTS = {
-    'ElderSeer': 'Chief',
+    'ElderSeer': 'Farmer',
     'ShieldBearer': 'Sheildmaiden',
     'Blacksmith': 'Farmer',
     'ArmoredJarl': 'Warrior',
@@ -127,22 +127,9 @@ class Geometry:
 
 
 def seer(parts):
-    chest, hand, root = parts['Chest'], parts['LeftElbow'], parts['WalkRoot']
-    # Split, ragged over-robe and fur shoulders.
-    for side in (-1, 1):
-        x = side * .22
-        chest.quad('leather', (x-side*.15, .27, -.16), (x+side*.15, .27, -.16),
-                   (x+side*.18, -.72, -.25), (x-side*.07, -.69, -.22))
-        chest.quad('fur', (x-side*.20, .33, .02), (x+side*.19, .31, .01),
-                   (x+side*.24, .15, .06), (x-side*.14, .15, .08))
-    # Staff rises above the head, and its fork is unmistakable in silhouette.
-    hand.rod('wood', (.07, -.94, .16), (.07, .68, .16), .038, 7)
-    hand.rod('wood_light', (.07, .63, .16), (-.08, .91, .17), .027, 6)
-    hand.rod('wood_light', (.07, .63, .16), (.22, .91, .17), .027, 6)
-    hand.rod('bronze', (.07, -.28, .16), (.07, -.20, .16), .045)
-    hand.orb('rune', (.065, .73, .175), (.04, .055, .025), 7, 3)
-    for offset in (-.12, 0, .12):
-        root.orb('bone', (offset, .15, .27), (.035, .065, .03), 7, 3)
+    # Farmer's detailed cloak has no shield; its textured fur and silver hair
+    # give the elder a complete silhouette without loose prop geometry.
+    return
 
 
 def shield_bearer(parts):

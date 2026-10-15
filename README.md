@@ -18,7 +18,8 @@ The walk uses mirrored contact, down, passing and up poses based on the
 
 The four reference-inspired additions are Elder Seer, Shield Bearer, Blacksmith,
 and Armored Jarl. They reuse the original detailed skinned bodies and eyelid
-morphs with faceted accessories parented to rig joints. The reference image is
+morphs. The Seer uses a shield-free cloak and carries no staff; the other
+variants have faceted accessories parented to rig joints. The reference image is
 in `assets/reference-new-vikings.jpeg`. Regenerate those four GLBs with
 `python tools/build-reference-characters.py`.
 
